@@ -1,0 +1,17 @@
+README      David Xiao      2010-12-7
+
+Currently writing first test build:
+
+    RBigQuery.R is largely done - if it's discovered that most of code is already
+        written by predeccessors, I might expand the interface to cover the optional
+        methods given in DBI specs.
+
+    dbObjectId.R is mostly untouched - one little C call which I need to look at
+
+    RBigQuerySupport.R is not even close - it's mostly just copied over RMySQL code
+        that I haven't even gotten to renaming yet. Three major phases here: rename
+        all the methods, bring the c-code into R, and then write in the RCurl/JSON
+
+Overall status: If anything even so much as compiles right now, your compiler is
+    broken.
+

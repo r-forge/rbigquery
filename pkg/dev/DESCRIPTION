@@ -1,0 +1,9 @@
+Package: RBigQuery
+Version: 0.1
+Date: 2010-12-1
+Title: BigQuery for R
+Author: David Xiao <dxiao@mit.edu>
+Maintainer: David Xiao <dxiao@mit.edu>
+Depends: R (>= 2.10.0), methods, DBI (> 0.2-2)
+Description: Google BigQuery interface for R. 
+License: GPL (>= 2)

@@ -1,0 +1,63 @@
+## NAMESPACE         David Xiao         12/7/10
+
+## Not that this list is not exhaustive, and is more of a todo list than any kind of
+## finished NAMESPACE file.
+import(methods)
+import(DBI)
+
+## Classes
+
+exportClasses(
+    BQObject,
+    BQDriver,
+    BQConnection,
+    BQResult
+)
+
+## Methods/Generics
+
+exportMethods(
+
+    # General to all Objects
+    dbGetInfo,
+
+    # Driver
+    dbListConnections,
+    #dbUnloadDriver, #optional
+    #drivername #invoked by dbDriver, instantiates corresponding driver object
+
+    # Connection
+    dbConnect,
+    dbDisconnect,
+    dbSendQuery,
+    dbGetQuery,
+    dbGetException,
+    dbGetInfo,
+    dbListResults,
+
+    # Connection - convenience
+    dbListTables,
+    dbReadTable,
+    dbWriteTable,
+    dbExistsTable,
+    dbRemoveTable,
+    dbListFields,
+
+    # Result
+    fetch,
+    dbClearResult,
+    dbColumnInfo,
+    #dbSetDataMappings, #optional
+    #dbGetStatement #optional
+    #dbGetRowCount #optional
+    
+    # Other (Implemented by DBI, should probably be overwritten)
+    dbDataType,
+    make.db.names,
+    SQLKeywords,
+    isSQLKeyword,
+
+    # Implemented by DBI
+    summary
+    #dbGetInfo
+)
