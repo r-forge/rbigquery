@@ -1,4 +1,4 @@
-## RBigQuery.R      David Xiao      2010-12-7
+## RBigQuery.R      David Xiao      2010-12-14
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL Advanced
@@ -12,16 +12,20 @@
 ########################################
 ## DBIObject Class
 
-setClass("BQObject", representation("DBIObject", "dbObjectId", "VIRTUAL"))
+#setClass("BQObject", representation("DBIObject", "dbObjectId", "VIRTUAL"))
+setClass("BQObject", representation("DBIObject", Id="integer", "VIRTUAL"))
 
 ########################################
-## dbDriver Class
+## dbDriver Method
 
 # At some point, may be useful to implement force.reload argument (flag which
 # reloads driver and close all open connections)
+#TODO: at some point, make the resulting class a singleton
 BigQuery <- function(max.con=1, fetch.default.rec = 1000)
 {
-    bqInitDriver(max.con = max.con, fetch.default.rec = fetch.default.rec)
+    if (fetch.default.rec<=0)
+        stop("default number of records per fetch must be positive")
+    new("BQDriver", Id = as.integer(0))
 }
 
 ########################################
@@ -29,11 +33,10 @@ BigQuery <- function(max.con=1, fetch.default.rec = 1000)
 
 setClass("BQDriver", representation("DBIDriver", "BQObject"))
 
-### what does this do?
-## coerce (extract) any PostgreSQLObject into a PostgreSQLDriver
-# setAs("BQObject", "BQDriver",
-#      def = function(from) new("BQDriver", Id = as(from, "integer")[1:2])
-#            )
+if (FALSE) {
+setAs("BQObject", "BQDriver",
+        def = function(from) new("BQDriver", Id = as(from, "integer")[1:2])
+        )
 
 setMethod("dbGetInfo", "BQDriver",
             def = function(dbObj, ...) bqDriverInfo(dbObj, ...)
@@ -43,10 +46,12 @@ setMethod("dbListConnections", "BQDriver",
             def = function(driver, ...) dbGetInfo(driver, "connectionIds")[[1]]
             )
 
-# not included: dbunloadDriver, summary
+# not included: dbUnloadDriver, summary
 
 ########################################
 ## DBIConnection Class
+
+## State of connection: authToken
 
 setClass("BQConnection", representation("DBIConnection", "BQObject"))
 
@@ -224,3 +229,4 @@ setMethod("dbColumnInfo", "BQResult",
 
 # Not included: dbGetStatement, dbGetRowsAffected, dbGetRowCount, dbHasCompleted,
 # summary
+}

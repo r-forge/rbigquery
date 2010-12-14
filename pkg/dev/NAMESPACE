@@ -1,4 +1,4 @@
-## NAMESPACE         David Xiao         12/7/10
+## NAMESPACE         David Xiao         2010-12-14
 
 ## Not that this list is not exhaustive, and is more of a todo list than any kind of
 ## finished NAMESPACE file.
@@ -9,9 +9,9 @@ import(DBI)
 
 exportClasses(
     BQObject,
-    BQDriver,
-    BQConnection,
-    BQResult
+    BQDriver
+#    BQConnection,
+#    BQResult
 )
 
 ## Methods/Generics
@@ -60,4 +60,8 @@ exportMethods(
     # Implemented by DBI
     summary
     #dbGetInfo
+)
+
+export(
+    BigQuery
 )

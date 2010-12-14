@@ -1,4 +1,4 @@
-## BBigQuerySupport.R       David Xiao      2010-12-7
+## BBigQuerySupport.R       David Xiao      2010-12-14
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL Advanced
@@ -7,6 +7,7 @@
 ## the code here is based. 
 ##
 
+if (FALSE) {
 bqInitDriver <- function(max.con=1, fetch.default.rec = 1000)
 ## Note: this class should be a singleton.
 {
@@ -16,13 +17,13 @@ bqInitDriver <- function(max.con=1, fetch.default.rec = 1000)
     new("BQDriver", Id = 0)
 }
 
-bqCloseDriver <- function(drv, ...)
-{
-    if (!isIdCurrent(drv))
-        return TRUE
-    # close specified driver
-    return TRUE
-}
+#bqCloseDriver <- function(drv, ...)
+#{
+#    if (!isIdCurrent(drv))
+#        return 1
+#    # close specified driver
+#    return 0
+#}
 
 bqDescribeDriver <- function(obj, verbose = FALSE, ...)
 ## Print out nicely a brief description of the connection Driver
@@ -724,4 +725,4 @@ function()
 {
     .Call("RS_MySQL_clientLibraryVersions",PACKAGE=.MySQLPkgName)
 }
-
+}

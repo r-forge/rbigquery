@@ -1,3 +1,19 @@
+README      David Xiao      2010-12-14
+
+Currently writing first test build:
+
+    RBigQuery.R is mostly commented out for the sake of actually being able to test
+        the package. Only the Driver class is implemented (and only partially
+        at that).
+
+    dbObjectId.R for the most part is abandoned - if I need it later, it's there
+
+    RBigQuerySupport.R is mostly discarded - design decision based on the fact that
+        this package's engine is in RCurl and rjson, not in a native C 
+        implementation
+
+Overall status: Code seems far more regresed, but now loads as a library
+
 README      David Xiao      2010-12-7
 
 Currently writing first test build:
