@@ -1,4 +1,4 @@
-## dbObjectId.R       David Xiao      2010-12-14
+## dbObjectId.R       David Xiao      2010-12-29
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL Advanced
@@ -19,7 +19,7 @@
 ##
 ## TODO: Convert the Id slot to be an external object (as per Luke Tierney's
 ## implementation), even at the expense of S-plus compatibility?
-'
+
 setClass("dbObjectId", representation(Id = "integer", "VIRTUAL"))
 
 ## coercion methods 
@@ -55,9 +55,9 @@ setMethod("print", "dbObjectId",
 isIdCurrent <- function(obj)
 ## verify that obj refers to a currently open/loaded database
 { 
-   ## Find a more fitting mechanism for this package
+   ## This method should be converted into a generic as soon as possible
    #obj <- as(obj, "integer")
    #.Call("RS_DBI_validHandle", obj, PACKAGE = .MySQLPkgName)
-   return TRUE
+   TRUE
 }
-'
+

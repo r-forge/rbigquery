@@ -1,3 +1,18 @@
+README      David Xiao      2010-1-01
+
+Currently writing first test build:
+
+    You can now login and make queries to the BigQuery database. Most of the
+        functions are not yet implemented and a few that are have major
+        bugs (see note below), but a basic work cycle is now ok.
+
+    Next update will implement the major methods of BQResult
+
+    Major problem for future updates is dealing with R's pass-by-value system -
+        driver's registry of connections doesn't yet work.
+
+Overall status: Package now rudimentarily usable.
+
 README      David Xiao      2010-12-14
 
 Currently writing first test build:

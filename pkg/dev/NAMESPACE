@@ -1,17 +1,16 @@
-## NAMESPACE         David Xiao         2010-12-14
+## NAMESPACE         David Xiao         2011-1-01
 
-## Not that this list is not exhaustive, and is more of a todo list than any kind of
-## finished NAMESPACE file.
 import(methods)
 import(DBI)
+import(RCurl)
 
 ## Classes
 
 exportClasses(
     BQObject,
-    BQDriver
-#    BQConnection,
-#    BQResult
+    BQDriver,
+    BQConnection,
+    BQResult
 )
 
 ## Methods/Generics
@@ -20,6 +19,7 @@ exportMethods(
 
     # General to all Objects
     dbGetInfo,
+    summary,
 
     # Driver
     dbListConnections,
@@ -32,7 +32,6 @@ exportMethods(
     dbSendQuery,
     dbGetQuery,
     dbGetException,
-    dbGetInfo,
     dbListResults,
 
     # Connection - convenience
@@ -50,18 +49,17 @@ exportMethods(
     #dbSetDataMappings, #optional
     #dbGetStatement #optional
     #dbGetRowCount #optional
-    
+
     # Other (Implemented by DBI, should probably be overwritten)
     dbDataType,
     make.db.names,
     SQLKeywords,
-    isSQLKeyword,
-
-    # Implemented by DBI
-    summary
-    #dbGetInfo
+    isSQLKeyword
 )
 
 export(
-    BigQuery
+    BigQuery,
+
+    # delete these after finished - these should be private
+    generateBQId
 )

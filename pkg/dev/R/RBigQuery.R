@@ -1,4 +1,4 @@
-## RBigQuery.R      David Xiao      2010-12-14
+## RBigQuery.R      David Xiao      2011-1-01
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL Advanced
@@ -10,70 +10,98 @@
 ##TODO: It may be useful at a later date to add custom summary methods to classes
 
 ########################################
+## CONSTANTS
+
+.BQPkgName <- "RBigQuery"
+.BQVersion <- "0.1"
+.BQLoginURL <- "https://www.google.com/accounts/ClientLogin"
+.BQService <- "ndev"
+.BQSource <- "RBigQuery"
+#.BQEndpoint <- "https://www.googleapis.com/bigquery/v1/query"
+.BQEndpoint <- "https://www.googleapis.com/rpc"
+
+########################################
 ## DBIObject Class
 
-#setClass("BQObject", representation("DBIObject", "dbObjectId", "VIRTUAL"))
-setClass("BQObject", representation("DBIObject", Id="integer", "VIRTUAL"))
+setClass("BQObject", representation("DBIObject", "dbObjectId", "VIRTUAL"))
+
 
 ########################################
 ## dbDriver Method
 
-# At some point, may be useful to implement force.reload argument (flag which
-# reloads driver and close all open connections)
-#TODO: at some point, make the resulting class a singleton
-BigQuery <- function(max.con=1, fetch.default.rec = 1000)
+BigQuery <- function(max.con=5, fetch.default.rec = 1000, force.reload = FALSE)
 {
     if (fetch.default.rec<=0)
         stop("default number of records per fetch must be positive")
-    new("BQDriver", Id = as.integer(0))
+    if (max.con<=0)
+        stop("maxiumum open connections must be positive")
+
+    getBQDriver(max.con, fetch.default.rec, force.reload)
 }
 
 ########################################
 ## DBIDriver Class
 
-setClass("BQDriver", representation("DBIDriver", "BQObject"))
+setClass("BQDriver", representation("DBIDriver", "BQObject",
+    connections="list", fetch.default.rec="integer", max.con="integer",
+    num.con="integer", prc.con="integer"))
 
-if (FALSE) {
-setAs("BQObject", "BQDriver",
-        def = function(from) new("BQDriver", Id = as(from, "integer")[1:2])
-        )
+
+#setAs("BQObject", "BQDriver",
+#    def = function(from) new("BQDriver", Id = as(from, "integer")[1:2])
+#)
 
 setMethod("dbGetInfo", "BQDriver",
-            def = function(dbObj, ...) bqDriverInfo(dbObj, ...)
-            )
+    def = function(dbObj, ...) bqDriverInfo(dbObj, ...)
+)
 
 setMethod("dbListConnections", "BQDriver",
-            def = function(driver, ...) dbGetInfo(driver, "connectionIds")[[1]]
-            )
+    def = function(drv, ...) dbGetInfo(drv, "connectionIds")
+)
 
-# not included: dbUnloadDriver, summary
+setMethod("summary", "BQDriver",
+    def = function(object, ...) bqDescribeDriver(object, ...)
+)
+
+# not included: dbUnloadDriver
 
 ########################################
 ## DBIConnection Class
 
 ## State of connection: authToken
 
-setClass("BQConnection", representation("DBIConnection", "BQObject"))
+setClass("BQConnection", representation("DBIConnection", "BQObject",
+    username="character", password="character", driver="BQDriver",
+    auth.token="character")
+)
 
 setMethod("dbConnect", "BQDriver",
-            def = function(driver, ...) bqNewConnection(driver, ...),
-            valueClass = "BQConnection"
-            )
+    def = function(drv, ...) bqNewConnection(drv, ...),
+    valueClass = "BQConnection"
+)
 
 setMethod("dbConnect", "character",
-            def = function(driver, ...) bqNewConnection(dbDriver(driver), ...),
-            valueClass = "BQConnection"
-            )
+    def = function(drv, ...) bqNewConnection(dbDriver(drv), ...),
+    valueClass = "BQConnection"
+)
 
 setMethod("dbConnect", "BQConnection",
-            def = function(driver, ...) bqCloneConnection(driver, ...),
-            valueClass = "BQConnection"
-            )
+    def = function(drv, ...) .NotYetImplemented(),
+    valueClass = "BQConnection"
+)
+
+setMethod("dbGetInfo", "BQConnection",
+    def = function(dbObj, ...) bqConnectionInfo(dbObj, ...)
+)
+
+setMethod("summary", "BQConnection",
+    def = function(object, ...) bqDescribeConnection(object, ...)
+)
 
 setMethod("dbDisconnect", "BQConnection",
-            def = function(conn, ...) bqCloseConnection(conn, ...),
-            valueClass = "logical"
-            )
+    def = function(conn, ...) bqCloseConnection(conn, ...),
+    valueClass = "logical"
+)
 
 setMethod("dbSendQuery", 
             signature(conn = "BQConnection", statement = "character"),
@@ -86,6 +114,25 @@ setMethod("dbGetQuery",
             def = function(conn, statement, ...) bqQuickStatement(conn, statement, ...),
             )
 
+#######################################
+## DBIResult Class
+
+setClass("BQResult", representation("DBIResult", "BQObject",
+            connection="BQConnection", statement="character", 
+            success="logical", result="list")
+)
+
+setMethod("dbGetInfo", "BQResult",
+            def = function(dbObj, ...) bqResultInfo(dbObj, ...),
+            valueClass = "list"
+            )
+
+setMethod("summary", "BQResult",
+    def = function(object, ...) bqDescribeResult(object, ...)
+)
+
+if (FALSE) { ########################### END OF CODE
+
 setMethod("dbGetException", "BQConnection",
             def = function(conn, ...) {
                 #if(!isIdCurrent(conn))
@@ -96,15 +143,9 @@ setMethod("dbGetException", "BQConnection",
             valueClass = "list"
             )
 
-setMethod("dbGetInfo", "BQConnection",
-            def = function(dbObj, ...) bqConnectionInfo(dbObj, ...)
-            )
-
 setMethod("dbListResults", "BQConnection",
             def = function(conn, ...) dbGetInfo(conn, "rsId")[[1]]
             )
-
-# not included: summary
 
 ###################
 ## Convenience methods
@@ -134,7 +175,7 @@ setMethod("dbReadTable",
 
 setMethod("dbWriteTable",
             signature(conn="BQConnection", name="character"),
-            def = function(conn, name, value, ...) bqWriteTalbe(conn, name, value, ...),
+            def = function(conn, name, value, ...) bqWriteTable(conn, name, value, ...),
             valueClass = "logical"
             )
 
@@ -181,8 +222,6 @@ setMethod("dbListFields",
 #######################################
 ## DBIResult Class
 
-setClass("BQResult", representation("DBIResult", "BQObject"))
-
 setAs("BQResult", "BQConnection",
         def = function(from) new("BQConnection", Id = as(from, "integer")[1:3])
         )
@@ -215,11 +254,6 @@ setMethod("fetch", signature(res="BQResult", n="missing"),
                 out
             },
             valueClass = "data.frame"
-            )
-
-setMethod("dbGetinfo", "BQResult",
-            def = function(dbObj, ...) bqResultInfo(dbObj, ...),
-            valueClass = "list"
             )
 
 setMethod("dbColumnInfo", "BQResult",

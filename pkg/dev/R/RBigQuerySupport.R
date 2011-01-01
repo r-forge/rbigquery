@@ -1,4 +1,4 @@
-## BBigQuerySupport.R       David Xiao      2010-12-14
+## BBigQuerySupport.R       David Xiao      2011-1-01
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL Advanced
@@ -7,14 +7,79 @@
 ## the code here is based. 
 ##
 
-if (FALSE) {
-bqInitDriver <- function(max.con=1, fetch.default.rec = 1000)
-## Note: this class should be a singleton.
+generateBQId <- local(
 {
-    if (fetch.default.rec<=0)
-        stop("default number of records per fetch must be positive")
-    # create new BQDriver and store driver
-    new("BQDriver", Id = 0)
+    id <- 0
+    function() {
+        id <<- id + 1
+        as.integer(id)
+    }
+})
+
+getBQDriverConstructor <- function ()
+{
+    constructed <- FALSE
+    driver <- 0
+    function (max.con=5, fetch.default.rec = 1000, force.reload = FALSE)
+    {
+        if (constructed == FALSE || force.reload == TRUE)
+        {
+            driver <<- new("BQDriver", 
+                            Id = as.integer(0),
+                            connections = list(),
+                            fetch.default.rec = as.integer(fetch.default.rec),
+                            max.con = as.integer(max.con),
+                            num.con = as.integer(0),
+                            prc.con = as.integer(0)
+                          )
+            constructed <<- TRUE
+        }
+        driver
+    }
+}
+
+getBQDriver <- getBQDriverConstructor()
+
+bqDescribeDriver <- function(obj, verbose = FALSE, ...)
+## Print out nicely a brief description of the connection Driver
+{
+   info <- dbGetInfo(obj)
+   print(obj)
+   cat("  Driver name: ", info$drvName, "\n")
+   cat("  Default records per fetch:", info$fetch.default.rec, "\n")
+   cat("  Max  connections:", info$max.con, "\n")
+   cat("  Conn. processed :", info$prc.con, "\n")
+   cat("  Open connections:", info$num.con, "\n")
+   if(verbose && !is.null(info$connections)){
+      for(i in seq(along = info$connections)){
+         cat("   ", i, " ")
+         print(info$connections[[i]])
+      }
+   }
+   if(verbose){
+      cat("  DBI API version: ", dbGetDBIVersion(), "\n")
+      cat("  BQ client version: ", info$clientVersion, "\n")
+   }
+   invisible(NULL)
+}
+
+bqDriverInfo <- function(dbObj, what="", ...)
+{
+    if(!isIdCurrent(dbObj))
+        stop(paste("expired", class(dbObj)))
+    info <- list()
+    info$drvName <- .BQPkgName
+    info$managerId <- dbObj@Id
+    info$fetch.default.rec <- dbObj@fetch.default.rec
+    info$max.con <- dbObj@max.con
+    info$prc.con <- dbObj@prc.con
+    info$num.con <- dbObj@num.con
+    info$connections <- dbObj@connections
+    info$clientVersion <- .BQVersion
+    if(!missing(what))
+        info[what]
+    else
+        info
 }
 
 #bqCloseDriver <- function(drv, ...)
@@ -25,200 +90,208 @@ bqInitDriver <- function(max.con=1, fetch.default.rec = 1000)
 #    return 0
 #}
 
-bqDescribeDriver <- function(obj, verbose = FALSE, ...)
-## Print out nicely a brief description of the connection Driver
+bqNewConnection <- function(drv, username=NULL, password=NULL)
 {
-   info <- dbGetInfo(obj)
-   print(obj)
-   cat("  Driver name: ", info$drvName, "\n")
-   cat("  Max  connections:", info$length, "\n")
-   cat("  Conn. processed:", info$counter, "\n")
-   cat("  Default records per fetch:", info$"fetch_default_rec", "\n")
-   if(verbose){
-      cat("  DBI API version: ", dbGetDBIVersion(), "\n")
-      cat("  BQ client version: ", info$clientVersion, "\n")
-   }
-   cat("  Open connections:", info$"num_con", "\n")
-   if(verbose && !is.null(info$connectionIds)){
-      for(i in seq(along = info$connectionIds)){
-         cat("   ", i, " ")
-         print(info$connectionIds[[i]])
-      }
-   }
-   invisible(NULL)
-}
+    if(!isIdCurrent(drv))
+        stop("expired manager")
 
-mysqlDriverInfo <- function(obj, what="", ...)
-{
-   if(!isIdCurrent(obj))
-      stop(paste("expired", class(obj)))
-   drvId <- as(obj, "integer")
-   info <- .Call("RS_MySQL_managerInfo", drvId, PACKAGE = .MySQLPkgName)  
-   ## replace drv/connection id w. actual drv/connection objects
-   conObjs <- vector("list", length = info$"num_con")
-   ids <- info$connectionIds
-   for(i in seq(along = ids))
-      conObjs[[i]] <- new("MySQLConnection", Id = c(drvId, ids[i]))
-   info$connectionIds <- conObjs
-   info$managerId <- new("MySQLDriver", Id = drvId)
-   if(!missing(what))
-      info[what]
-   else
-      info
-}
-
-"mysqlNewConnection" <-
-function(drv, dbname=NULL, username=NULL,
-   password=NULL, host=NULL,
-   unix.socket=NULL, port = 0, client.flag = 0, 
-   groups = 'rs-dbi', default.file = NULL)
-{
-   if(!isIdCurrent(drv))
-      stop("expired manager")
-
-    if (!is.null(dbname) && !is.character(dbname))
-         stop("Argument dbname must be a string or NULL")
     if (!is.null(username) && !is.character(username))
-         stop("Argument username must be a string or NULL")
+        stop("Argument username must be a string")
     if (!is.null(password) && !is.character(password))
-         stop("Argument password must be a string or NULL")
-    if (!is.null(host) && !is.character(host))
-         stop("Argument host must be a string or NULL")
-    if (!is.null(unix.socket) && !is.character(unix.socket))
-         stop("Argument unix.socket must be a string or NULL")
+        stop("Argument password must be a string or NULL")
 
-    if (is.null(port) || !is.numeric(port))
-         stop("Argument port must be an integer value")
-    if (is.null(client.flag) || !is.numeric(client.flag))
-         stop("Argument client.flag must be an integer value")
-
-    if (!is.null(groups) && !is.character(groups))
-         stop("Argument groups must be a string or NULL")
-
-    if(!is.null(default.file) && !is.character(default.file))
-         stop("Argument default.file must be a string")
-
-    if(!is.null(default.file) && !file.exists(default.file[1]))
-        stop(sprintf("mysql default file %s does not exist", default.file))
+    if (drv@num.con >= drv@max.con)
+        stop("Driver has too many open connections")
    
-    drvId <- as(drv, "integer")
-    conId <- .Call("RS_MySQL_newConnection", drvId, 
-        dbname, username, password, host, unix.socket, 
-        as.integer(port), as.integer(client.flag), 
-        groups, default.file[1], PACKAGE = .MySQLPkgName)
+    result = postForm(.BQLoginURL,
+        "accountType" = "HOSTED_OR_GOOGLE",
+        "Email" = username,
+        "Passwd" = password,
+        service = .BQService,
+        source = .BQSource)
 
-    new("MySQLConnection", Id = conId)
+    result.lines = strsplit(result, '\n')[[1]]
+
+    if (grep("Auth=", result.lines))
+    {
+        auth.token <- substring(result.lines[grep("Auth=", result.lines)],
+                                nchar("Auth=")+1)
+        connection <- new("BQConnection", username=username, password=password,
+                            driver=drv, auth.token=auth.token, Id=generateBQId())
+
+        drv@num.con <- as.integer(drv@num.con + 1)
+        drv@connections[connection@Id] <- connection
+
+        connection
+    }
+    else
+    {
+        stop("Could not login")
+    }
 }
 
-"mysqlCloneConnection" <-
-function(con, ...)
-{
-   if(!isIdCurrent(con))
-      stop(paste("expired", class(con)))
-   conId <- as(con, "integer")
-   newId <- .Call("RS_MySQL_cloneConnection", conId, PACKAGE = .MySQLPkgName)
-   new("MySQLConnection", Id = newId)
-}
-
-"mysqlDescribeConnection" <-
-function(obj, verbose = FALSE, ...)
+bqDescribeConnection <- function(obj, verbose = FALSE, ...)
 {
    info <- dbGetInfo(obj)
    print(obj)
-   cat("  User:", info$user, "\n")
-   cat("  Host:", info$host, "\n")
-   cat("  Dbname:", info$dbname, "\n")
-   cat("  Connection type:", info$conType, "\n")
+   cat("  Driver: ")
+   print(info$driver)
+   cat("  Username:", info$username, "\n")
    if(verbose){
-      cat("  MySQL server version: ", info$serverVersion, "\n")
-      cat("  MySQL client version: ", 
-         dbGetInfo(as(obj, "MySQLDriver"), what="clientVersion")[[1]], "\n")
-      cat("  MySQL protocol version: ", info$protocolVersion, "\n")
-      cat("  MySQL server thread id: ", info$threadId, "\n")
+      cat("  Password:", info$password, "\n")
+      cat("  Auth Token:", info$auth.token, "\n")
+      cat("  BigQuery client version: ", 
+         dbGetInfo(info$driver, what="clientVersion")[[1]], "\n")
    }
-   if(length(info$rsId)>0){
-      for(i in seq(along = info$rsId)){
-         cat("   ", i, " ")
-         print(info$rsId[[i]])
-      }
-   } else 
-      cat("  No resultSet available\n")
+   #if(length(info$rsId)>0){
+   #   for(i in seq(along = info$rsId)){
+   #      cat("   ", i, " ")
+   #      print(info$rsId[[i]])
+   #   }
+   #} else 
+   #   cat("  No resultSet available\n")
    invisible(NULL)
 }
 
-"mysqlCloseConnection" <-
-function(con, ...)
-{
-   if(!isIdCurrent(con))
-      return(TRUE)
-   rs <- dbListResults(con)
-   if(length(rs)>0){
-      if(dbHasCompleted(rs[[1]]))
-         dbClearResult(rs[[1]])
-      else
-         stop("connection has pending rows (close open results set first)")
-   }
-   conId <- as(con, "integer")
-   .Call("RS_MySQL_closeConnection", conId, PACKAGE = .MySQLPkgName)
-}
-
-"mysqlConnectionInfo" <-
-function(obj, what="", ...)
+bqConnectionInfo <- function(obj, what="", ...)
 {
    if(!isIdCurrent(obj))
       stop(paste("expired", class(obj), deparse(substitute(obj))))
-   id <- as(obj, "integer")
-   info <- .Call("RS_MySQL_connectionInfo", id, PACKAGE = .MySQLPkgName)
-   rsId <- vector("list", length = length(info$rsId))
-   for(i in seq(along = info$rsId))
-       rsId[[i]] <- new("MySQLResult", Id = c(id, info$rsId[i]))
-   info$rsId <- rsId
+   info <- list()
+   info$driver <- obj@driver
+   info$username <- obj@username
+   info$password <- length(obj@password)
+   info$auth.token <- obj@auth.token
+   #rsId <- vector("list", length = length(info$rsId))
+   #for(i in seq(along = info$rsId))
+   #    rsId[[i]] <- new("MySQLResult", Id = c(id, info$rsId[i]))
+   #info$rsId <- rsId
    if(!missing(what))
       info[what]
    else
       info
 }
        
-"mysqlExecStatement" <-
-function(con, statement)
-## submits the sql statement to MySQL and creates a
-## dbResult object if the SQL operation does not produce
-## output, otherwise it produces a resultSet that can
-## be used for fetching rows.
+bqCloseConnection <- function(con, ...)
 {
    if(!isIdCurrent(con))
-      stop(paste("expired", class(con)))
-   conId <- as(con, "integer")
-   statement <- as(statement, "character")
-   rsId <- .Call("RS_MySQL_exec", conId, statement, PACKAGE = .MySQLPkgName)
-   new("MySQLResult", Id = rsId)
+      return(TRUE)
+   #rs <- dbListResults(con)
+   #if(length(rs)>0){
+   #   if(dbHasCompleted(rs[[1]]))
+   #      dbClearResult(rs[[1]])
+   #   else
+   #      stop("connection has pending rows (close open results set first)")
+   #}
+   #conId <- as(con, "integer")
+   driver <- con@driver
+   print(driver)
+   print(driver@connections)
+   driver@connections[con@Id] <- NULL
+   print(driver@connections)
+   driver@num.con <- as.integer(driver@num.con - 1)
+   return(TRUE)
+}
+
+bqExecStatement <- function(con, statement)
+## submits the sql statement to BQ and creates a
+## dbResult object
+{
+    if(!isIdCurrent(con))
+        stop(paste("expired", class(con)))
+    statement <- as(statement, "character")
+
+    auth.text <- paste("GoogleLogin auth=", con@auth.token, sep="")
+    json <- toJSON(list(params=list(q=statement),method="bigquery.query"))
+#    json <- toJSON(paste('{params:{q:"',statement,
+#                        '"),method="bigquery:query")', sep=""))
+    print(json)
+    options <- list(httpheader=list(Authorization=auth.text,
+                        "Content-type"="application/json"),
+                        postfields=json)
+    results <- fromJSON(rawToChar(postForm(.BQEndpoint,
+        .opts = options)))
+
+    if (is.null(results$error))
+    {
+        success <- TRUE
+        data <- results$result
+    }
+    else
+    {
+        success <- FALSE
+        data <- results$error
+    }
+    
+    new("BQResult", Id=generateBQId(), connection=con,
+            statement=statement, success=success, result=data)
 }
 
 ## helper function: it exec's *and* retrieves a statement. It should
-## be named somehting else.
-"mysqlQuickSQL" <-
-function(con, statement)
+## be named something else.
+bqQuickStatement <- function(con, statement)
 {
    if(!isIdCurrent(con))
       stop(paste("expired", class(con)))
-   nr <- length(dbListResults(con))
-   if(nr>0){                     ## are there resultSets pending on con?
-      new.con <- dbConnect(con)   ## yep, create a clone connection
-      on.exit(dbDisconnect(new.con))
-      rs <- dbSendQuery(new.con, statement)
-   } else rs <- dbSendQuery(con, statement)
-   if(dbHasCompleted(rs)){
-      dbClearResult(rs)            ## no records to fetch, we're done
-      invisible()
-      return(NULL)
+   result <- dbSendQuery(con, statement)
+   if (is.null(result@error))
+   {
+       return(data.frame(result@result))
    }
-   res <- fetch(rs, n = -1)
-   if(dbHasCompleted(rs))
-      dbClearResult(rs)
-   else 
-      warning("pending rows")
-   res
+   else
+   {
+       return(FALSE)
+   }
 }
+
+bqResultInfo <- function(obj, what = "", ...)
+{
+   if(!isIdCurrent(obj))
+      stop(paste("expired", class(obj), deparse(substitute(obj))))
+   info <- list()
+   info$connection = obj@connection
+   info$statement = obj@statement
+   info$success = obj@success
+   info$result = obj@result
+   if(!missing(what))
+      info[what]
+   else
+      info
+}
+
+bqDescribeResult <- function(obj, verbose = FALSE, ...)
+{
+
+   if(!isIdCurrent(obj)){
+      print(obj)
+      invisible(return(NULL))
+   }
+   print(obj)
+   cat("  Connection:\n")
+   print(info$connection)
+   info <- dbGetInfo(obj)
+   cat("  Statement:", info$statement, "\n")
+   cat("  Success:", info$success, "\n")
+   if (! info$success)
+       cat("  Error:", info$result$message, "\n")
+   else if (verbose)
+   {
+       cat("  Result:\n")
+       print(data.frame(info$result))
+   }
+#   cat("  Statement:", dbGetStatement(obj), "\n")
+#   cat("  Has completed?", if(dbHasCompleted(obj)) "yes" else "no", "\n")
+#   cat("  Affected rows:", dbGetRowsAffected(obj), "\n")
+#   cat("  Rows fetched:", dbGetRowCount(obj), "\n")
+#   flds <- dbColumnInfo(obj)
+#   if(verbose && !is.null(flds)){
+#      cat("  Fields:\n")  
+#      out <- print(dbColumnInfo(obj))
+#   }
+   invisible(NULL)
+}
+
+if (FALSE) { ########################### END OF CODE
 
 "mysqlDescribeFields" <-
 function(res, ...)
@@ -361,40 +434,6 @@ function(res, n=0, ...)
 ## Note that originally we had only resultSet both for SELECTs
 ## and INSERTS, ...  Later on we created a base class dbResult
 ## for non-Select SQL and a derived class resultSet for SELECTS.
-
-"mysqlResultInfo" <-
-function(obj, what = "", ...)
-{
-   if(!isIdCurrent(obj))
-      stop(paste("expired", class(obj), deparse(substitute(obj))))
-   id <- as(obj, "integer")
-   info <- .Call("RS_MySQL_resultSetInfo", id, PACKAGE = .MySQLPkgName)
-   if(!missing(what))
-      info[what]
-   else
-      info
-}
-
-"mysqlDescribeResult" <-
-function(obj, verbose = FALSE, ...)
-{
-
-   if(!isIdCurrent(obj)){
-      print(obj)
-      invisible(return(NULL))
-   }
-   print(obj)
-   cat("  Statement:", dbGetStatement(obj), "\n")
-   cat("  Has completed?", if(dbHasCompleted(obj)) "yes" else "no", "\n")
-   cat("  Affected rows:", dbGetRowsAffected(obj), "\n")
-   cat("  Rows fetched:", dbGetRowCount(obj), "\n")
-   flds <- dbColumnInfo(obj)
-   if(verbose && !is.null(flds)){
-      cat("  Fields:\n")  
-      out <- print(dbColumnInfo(obj))
-   }
-   invisible(NULL)
-}
 
 "mysqlCloseResult" <-
 function(res, ...)
