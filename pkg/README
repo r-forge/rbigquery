@@ -1,4 +1,19 @@
-README      David Xiao      2010-1-01
+README      David Xiao      2011-1-13
+
+    BQResult has now been fully implemented, with the exception of
+        dbClearResult. As long as your query does no exceed the data limit
+        of a single BigQuery query, you should be able to get everything
+        you need.
+
+    Next update will either try to implement the convenience classes for
+        dbConnect or expand BQResult to be able to deal with arbitrarily
+        large result sets.
+
+    Another idea is to provide auth cookie loading and saving.
+
+Overall status: 1/3 to 1.0
+
+README      David Xiao      2011-1-01
 
 Currently writing first test build:
 

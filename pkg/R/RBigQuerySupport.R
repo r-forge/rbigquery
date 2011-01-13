@@ -1,4 +1,4 @@
-## BBigQuerySupport.R       David Xiao      2011-1-01
+## BBigQuerySupport.R       David Xiao      2011-1-13
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL Advanced
@@ -38,6 +38,7 @@ getBQDriverConstructor <- function ()
     }
 }
 
+# BQDriver is a singleton
 getBQDriver <- getBQDriverConstructor()
 
 bqDescribeDriver <- function(obj, verbose = FALSE, ...)
@@ -112,7 +113,11 @@ bqNewConnection <- function(drv, username=NULL, password=NULL)
 
     result.lines = strsplit(result, '\n')[[1]]
 
-    if (grep("Auth=", result.lines))
+    if (grepl("Error=", result))
+    {
+        stop(paste("Login", result.lines[grep("Error=", result.lines)]))
+    }
+    else if (grepl("Auth=", result))
     {
         auth.token <- substring(result.lines[grep("Auth=", result.lines)],
                                 nchar("Auth=")+1)
@@ -126,7 +131,7 @@ bqNewConnection <- function(drv, username=NULL, password=NULL)
     }
     else
     {
-        stop("Could not login")
+        stop("Unknown Error: Could not login")
     }
 }
 
@@ -193,7 +198,28 @@ bqCloseConnection <- function(con, ...)
    return(TRUE)
 }
 
-bqExecStatement <- function(con, statement)
+bqConvertFactorToType <- function(factor, type)
+{
+    # leaving characters as factors for now
+    if (type == "integer")
+    {
+        as.integer(levels(factor))
+    }
+    else if (type == "numeric")
+    {
+        as.numeric(levels(factor))
+    }
+    else if (type == "logical")
+    {
+        as.logical(levels(factor))
+    }
+    else
+    {
+        factor
+    }
+}
+
+bqExecStatement <- function(con, statement, verbose=FALSE)
 ## submits the sql statement to BQ and creates a
 ## dbResult object
 {
@@ -202,29 +228,42 @@ bqExecStatement <- function(con, statement)
     statement <- as(statement, "character")
 
     auth.text <- paste("GoogleLogin auth=", con@auth.token, sep="")
-    json <- toJSON(list(params=list(q=statement),method="bigquery.query"))
-#    json <- toJSON(paste('{params:{q:"',statement,
-#                        '"),method="bigquery:query")', sep=""))
-    print(json)
+    json.in <- toJSON(list(params=list(q=statement),method="bigquery.query"))
+    if (verbose)
+        cat(" JSON Input: ", json.in, "\n")
     options <- list(httpheader=list(Authorization=auth.text,
                         "Content-type"="application/json"),
-                        postfields=json)
-    results <- fromJSON(rawToChar(postForm(.BQEndpoint,
-        .opts = options)))
+                        postfields=json.in)
+#    results <- fromJSON(rawToChar(postForm(.BQEndpoint,
+#        .opts = options)))
+    json.out <- rawToChar(postForm(.BQEndpoint, .opts=options))
+    results <- fromJSON(json.out)
+    if (verbose)
+        cat(" JSON Output: ", json.out, "\n")
 
     if (is.null(results$error))
     {
         success <- TRUE
-        data <- results$result
+        rows <- ldply(results$result$rows, data.frame)
+        fields <- ldply(results$result$fields, data.frame)
+        names(rows) <- levels(fields[["id"]])
+        types <- levels(fields[["type"]])
+        for (index in {1:length(rows)})
+        {
+            rows[[index]] <- bqConvertFactorToType(rows[[index]],
+                                bq.map.type[types[[index]]])
+        }
+        data <- rows
     }
     else
     {
         success <- FALSE
+        fields <- NULL
         data <- results$error
     }
     
     new("BQResult", Id=generateBQId(), connection=con,
-            statement=statement, success=success, result=data)
+            statement=statement, success=success, fields=fields, result=data)
 }
 
 ## helper function: it exec's *and* retrieves a statement. It should
@@ -252,6 +291,7 @@ bqResultInfo <- function(obj, what = "", ...)
    info$connection = obj@connection
    info$statement = obj@statement
    info$success = obj@success
+   info$fields = obj@fields
    info$result = obj@result
    if(!missing(what))
       info[what]
@@ -267,9 +307,9 @@ bqDescribeResult <- function(obj, verbose = FALSE, ...)
       invisible(return(NULL))
    }
    print(obj)
+   info <- dbGetInfo(obj)
    cat("  Connection:\n")
    print(info$connection)
-   info <- dbGetInfo(obj)
    cat("  Statement:", info$statement, "\n")
    cat("  Success:", info$success, "\n")
    if (! info$success)
@@ -278,6 +318,11 @@ bqDescribeResult <- function(obj, verbose = FALSE, ...)
    {
        cat("  Result:\n")
        print(data.frame(info$result))
+   }
+   else
+   {
+       cat("  Fields:\n")
+       print(info$fields)
    }
 #   cat("  Statement:", dbGetStatement(obj), "\n")
 #   cat("  Has completed?", if(dbHasCompleted(obj)) "yes" else "no", "\n")
@@ -291,23 +336,27 @@ bqDescribeResult <- function(obj, verbose = FALSE, ...)
    invisible(NULL)
 }
 
-if (FALSE) { ########################### END OF CODE
-
-"mysqlDescribeFields" <-
-function(res, ...)
-{
-   flds <- dbGetInfo(res, "fieldDescription")[[1]][[1]]
-   if(!is.null(flds)){
-      flds$Sclass <- .Call("RS_DBI_SclassNames", flds$Sclass, 
-                        PACKAGE = .MySQLPkgName)
-      flds$type <- .Call("RS_MySQL_typeNames", as.integer(flds$type), 
-                        PACKAGE = .MySQLPkgName)
-      ## no factors
-      structure(flds, row.names = paste(seq(along=flds$type)),
-                            class = "data.frame")
-   }
-   else data.frame(flds)
+bqFetch <- function(res, n=0, ...)
+## What this will do when finished:
+## Fetch at most n records from the opened resultSet (n = -1 means
+## all records, n=0 means extract as many as "default_fetch_rec",
+## as defined by BQDriver (see describe(drv, T)).
+## The returned object is a data.frame. 
+## Note: The method dbHasCompleted() on the resultSet tells you whether
+## or not there are pending records to be fetched. # old note from mysql code
+## 
+## TODO: Make sure we don't exhaust all the memory, or generate
+## an object whose size exceeds option("object.size").  Also,
+## are we sure we want to return a data.frame?
+{    
+    res@result
 }
+
+## Note that originally we had only resultSet both for SELECTs
+## and INSERTS, ...  Later on we created a base class dbResult
+## for non-Select SQL and a derived class resultSet for SELECTS.
+
+if (FALSE) { ########################### END OF CODE
 
 "mysqlDBApply" <-
 function(res, INDEX, FUN = stop("must specify FUN"), 
@@ -403,37 +452,6 @@ function(res, INDEX, FUN = stop("must specify FUN"),
       end()
    out
 }
-
-"mysqlFetch" <-
-function(res, n=0, ...)
-## Fetch at most n records from the opened resultSet (n = -1 means
-## all records, n=0 means extract as many as "default_fetch_rec",
-## as defined by MySQLDriver (see describe(drv, T)).
-## The returned object is a data.frame. 
-## Note: The method dbHasCompleted() on the resultSet tells you whether
-## or not there are pending records to be fetched. 
-## 
-## TODO: Make sure we don't exhaust all the memory, or generate
-## an object whose size exceeds option("object.size").  Also,
-## are we sure we want to return a data.frame?
-{    
-   n <- as(n, "integer")
-   rsId <- as(res, "integer")
-   rel <- .Call("RS_MySQL_fetch", rsId, nrec = n, PACKAGE = .MySQLPkgName)
-   if(length(rel)==0 || length(rel[[1]])==0) 
-      return(NULL)
-   ## create running row index as of previous fetch (if any)
-   cnt <- dbGetRowCount(res)
-   nrec <- length(rel[[1]])
-   indx <- seq(from = cnt - nrec + 1, length = nrec)
-   attr(rel, "row.names") <- as.character(indx)
-   class(rel) <- "data.frame"
-   rel
-}
-
-## Note that originally we had only resultSet both for SELECTs
-## and INSERTS, ...  Later on we created a base class dbResult
-## for non-Select SQL and a derived class resultSet for SELECTS.
 
 "mysqlCloseResult" <-
 function(res, ...)

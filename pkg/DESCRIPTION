@@ -1,10 +1,11 @@
-Package: rbigquery
-Type: Package
-Title: R interface to Google's Bigquery
-Version: 1.0
-Date: 2010-11-23
-Author: Steven Bauer 
-Maintainer: Steven Bauer <s_bauer@alum.mit.edu>
-Description: Provides an R interface to Google's Biqquery
-License: GPL 
-LazyLoad: yes
+Package:     RBigQuery
+Version:     0.3
+Date:        2011-1-11
+Title:       BigQuery for R
+Author:      David Xiao <dxiao@mit.edu>
+Maintainer:  David Xiao <dxiao@mit.edu>
+Depends:     R (>= 2.11.0), methods, DBI (> 0.2-2), rjson, RCurl, plyr
+Description: R interface for Google BigQuery 
+Collate:     dbObjectId.R RBigQuerySupport.R RBigQuery.R
+LazyLoad:    yes
+License:     GPL (>= 2)

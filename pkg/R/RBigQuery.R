@@ -1,4 +1,4 @@
-## RBigQuery.R      David Xiao      2011-1-01
+## RBigQuery.R      David Xiao      2011-1-13
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL Advanced
@@ -13,12 +13,21 @@
 ## CONSTANTS
 
 .BQPkgName <- "RBigQuery"
-.BQVersion <- "0.1"
+.BQVersion <- "0.3"
 .BQLoginURL <- "https://www.google.com/accounts/ClientLogin"
 .BQService <- "ndev"
 .BQSource <- "RBigQuery"
 #.BQEndpoint <- "https://www.googleapis.com/bigquery/v1/query"
 .BQEndpoint <- "https://www.googleapis.com/rpc"
+
+bq.map.type <- list(
+                "string"="character",
+                "character"="string",
+                "integer"="integer",
+                "float"="numeric",
+                "numeric"="float",
+                "boolean"="logical",
+                "logical"="boolean")
 
 ########################################
 ## DBIObject Class
@@ -119,7 +128,7 @@ setMethod("dbGetQuery",
 
 setClass("BQResult", representation("DBIResult", "BQObject",
             connection="BQConnection", statement="character", 
-            success="logical", result="list")
+            success="logical", fields="data.frame", result="data.frame")
 )
 
 setMethod("dbGetInfo", "BQResult",
@@ -130,6 +139,16 @@ setMethod("dbGetInfo", "BQResult",
 setMethod("summary", "BQResult",
     def = function(object, ...) bqDescribeResult(object, ...)
 )
+
+setMethod("dbColumnInfo", "BQResult",
+            def = function(res, ...) dbGetInfo(res, "fields"),
+            valueClass = "data.frame"
+            )
+
+setMethod("dbGetStatement", "BQResult",
+            def = function(res, ...) dbGetInfo(res, "statement"),
+            valueClass = "character"
+            )
 
 if (FALSE) { ########################### END OF CODE
 
@@ -253,11 +272,6 @@ setMethod("fetch", signature(res="BQResult", n="missing"),
                     out <- data.frame(out)
                 out
             },
-            valueClass = "data.frame"
-            )
-
-setMethod("dbColumnInfo", "BQResult",
-            def = function(res, ...) bqDescribeFields(res, ...),
             valueClass = "data.frame"
             )
 

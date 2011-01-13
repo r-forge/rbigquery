@@ -1,4 +1,4 @@
-## NAMESPACE         David Xiao         2011-1-01
+## NAMESPACE         David Xiao         2011-1-13
 
 import(methods)
 import(DBI)
@@ -47,8 +47,8 @@ exportMethods(
     dbClearResult,
     dbColumnInfo,
     #dbSetDataMappings, #optional
-    #dbGetStatement #optional
-    #dbGetRowCount #optional
+    dbGetStatement,
+    dbGetRowCount,
 
     # Other (Implemented by DBI, should probably be overwritten)
     dbDataType,
@@ -61,5 +61,7 @@ export(
     BigQuery,
 
     # delete these after finished - these should be private
-    generateBQId
+    generateBQId,
+    bqConvertFactorToType,
+    bq.map.type
 )
