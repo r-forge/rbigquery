@@ -1,11 +1,17 @@
-## BBigQuerySupport.R       David Xiao      2011-1-13
+## BBigQuerySupport.R       David Xiao      2011-1-21
 
 ## 
-## This project is being developed as part of a UROP under the MIT CSAIL Advanced
-## Network Architectures Group.
-## Thanks to the authors of the RMySQL and RPostgreSQL packages, upon which much of
-## the code here is based. 
+## This project is being developed as part of a UROP under the MIT CSAIL
+## Advanced Network Architectures Group.
+## Thanks to the authors of the RMySQL and RPostgreSQL packages, upon which 
+## much of the code here is based. 
 ##
+## Note that as of right now all BQObjects are still pass by value - any
+## operation that changes the state of a BQ object WILL NOT work.
+##
+
+## Why on earth does R not have this built in?
+trim <- function(x) gsub("^[[:space:]]+|[[:space:]]+$", "", x) 
 
 generateBQId <- local(
 {
@@ -82,14 +88,6 @@ bqDriverInfo <- function(dbObj, what="", ...)
     else
         info
 }
-
-#bqCloseDriver <- function(drv, ...)
-#{
-#    if (!isIdCurrent(drv))
-#        return 1
-#    # close specified driver
-#    return 0
-#}
 
 bqNewConnection <- function(drv, username=NULL, password=NULL)
 {
@@ -176,7 +174,7 @@ bqConnectionInfo <- function(obj, what="", ...)
    else
       info
 }
-       
+
 bqCloseConnection <- function(con, ...)
 {
    if(!isIdCurrent(con))
@@ -190,11 +188,9 @@ bqCloseConnection <- function(con, ...)
    #}
    #conId <- as(con, "integer")
    driver <- con@driver
-   print(driver)
-   print(driver@connections)
    driver@connections[con@Id] <- NULL
-   print(driver@connections)
    driver@num.con <- as.integer(driver@num.con - 1)
+   con@auth.token <- NULL
    return(TRUE)
 }
 
@@ -203,15 +199,15 @@ bqConvertFactorToType <- function(factor, type)
     # leaving characters as factors for now
     if (type == "integer")
     {
-        as.integer(levels(factor))
+        as.integer(levels(factor)[factor])
     }
     else if (type == "numeric")
     {
-        as.numeric(levels(factor))
+        as.numeric(levels(factor)[factor])
     }
     else if (type == "logical")
     {
-        as.logical(levels(factor))
+        as.logical(levels(factor)[factor])
     }
     else
     {
@@ -234,9 +230,15 @@ bqExecStatement <- function(con, statement, verbose=FALSE)
     options <- list(httpheader=list(Authorization=auth.text,
                         "Content-type"="application/json"),
                         postfields=json.in)
-#    results <- fromJSON(rawToChar(postForm(.BQEndpoint,
-#        .opts = options)))
-    json.out <- rawToChar(postForm(.BQEndpoint, .opts=options))
+    out.text <- postForm(.BQEndpoint, .opts=options)
+    if (verbose)
+        print(out.text)
+
+    if (typeof(out.text) == "raw")
+        json.out <- rawToChar(out.text)
+    else
+        stop(paste("ERROR:\n", out.text))
+
     results <- fromJSON(json.out)
     if (verbose)
         cat(" JSON Output: ", json.out, "\n")
@@ -246,24 +248,39 @@ bqExecStatement <- function(con, statement, verbose=FALSE)
         success <- TRUE
         rows <- ldply(results$result$rows, data.frame)
         fields <- ldply(results$result$fields, data.frame)
-        names(rows) <- levels(fields[["id"]])
-        types <- levels(fields[["type"]])
+        names(rows) <- as.character(fields[["id"]])
+        types <- as.character(fields[["type"]])
+        if (verbose)
+            print(data.frame(fields))
         for (index in {1:length(rows)})
         {
+            if (verbose)
+            {
+                print(index)
+                cat(format(types[[index]]), " -> ", 
+                    format(bq.map.type[types[[index]]]), "\n")
+                print(rows[[index]])
+            }
+
             rows[[index]] <- bqConvertFactorToType(rows[[index]],
                                 bq.map.type[types[[index]]])
+
+            if (verbose)
+            {
+                print(rows[[index]])
+            }
         }
-        data <- rows
+        result <- rows
     }
     else
     {
         success <- FALSE
-        fields <- NULL
-        data <- results$error
+        fields <- data.frame()
+        result <- data.frame(results$error$data)
     }
     
     new("BQResult", Id=generateBQId(), connection=con,
-            statement=statement, success=success, fields=fields, result=data)
+            statement=statement, success=success, fields=fields, result=result)
 }
 
 ## helper function: it exec's *and* retrieves a statement. It should
@@ -275,7 +292,7 @@ bqQuickStatement <- function(con, statement)
    result <- dbSendQuery(con, statement)
    if (is.null(result@error))
    {
-       return(data.frame(result@result))
+       return(result@result)
    }
    else
    {
@@ -292,7 +309,10 @@ bqResultInfo <- function(obj, what = "", ...)
    info$statement = obj@statement
    info$success = obj@success
    info$fields = obj@fields
-   info$result = obj@result
+   if (info$success)
+       info$result = obj@result
+   else
+       info$error = as.list(obj@result)
    if(!missing(what))
       info[what]
    else
@@ -308,12 +328,12 @@ bqDescribeResult <- function(obj, verbose = FALSE, ...)
    }
    print(obj)
    info <- dbGetInfo(obj)
-   cat("  Connection:\n")
+   cat("  Connection:", format(info$connection), "\n")
    print(info$connection)
    cat("  Statement:", info$statement, "\n")
    cat("  Success:", info$success, "\n")
    if (! info$success)
-       cat("  Error:", info$result$message, "\n")
+       cat("  Error:", format(as.list(info$error)), "\n")
    else if (verbose)
    {
        cat("  Result:\n")
@@ -337,14 +357,6 @@ bqDescribeResult <- function(obj, verbose = FALSE, ...)
 }
 
 bqFetch <- function(res, n=0, ...)
-## What this will do when finished:
-## Fetch at most n records from the opened resultSet (n = -1 means
-## all records, n=0 means extract as many as "default_fetch_rec",
-## as defined by BQDriver (see describe(drv, T)).
-## The returned object is a data.frame. 
-## Note: The method dbHasCompleted() on the resultSet tells you whether
-## or not there are pending records to be fetched. # old note from mysql code
-## 
 ## TODO: Make sure we don't exhaust all the memory, or generate
 ## an object whose size exceeds option("object.size").  Also,
 ## are we sure we want to return a data.frame?
@@ -352,11 +364,73 @@ bqFetch <- function(res, n=0, ...)
     res@result
 }
 
-## Note that originally we had only resultSet both for SELECTs
-## and INSERTS, ...  Later on we created a base class dbResult
-## for non-Select SQL and a derived class resultSet for SELECTS.
+bqDescribeTable <- function (con, table, verbose=FALSE,...)
+{
+    auth.text <- paste("GoogleLogin auth=", con@auth.token, sep="")
+    httpheader <-list("Authorization"=auth.text,
+                        "Content-type"="application/json",
+                        "Accept"="application/json")
+    url <- paste(.BQGetpoint, 'tables/', curlEscape(table), sep="")
+    json.out <- getURL(url, httpheader=httpheader, v=verbose)
+
+    if (verbose)
+        print(json.out)
+
+    results <- fromJSON(json.out)
+    if (verbose)
+    {
+        cat(" JSON Output: ", json.out, "\n")
+        print(data.frame(results))
+    }
+    
+    results$data
+}
+
+bqListFields <- function (con, table, verbose=FALSE, ...)
+{
+    fields <- bqDescribeTable(con, table, verbose)$fields
+    lst <- c()
+    for (field in fields)
+    {
+        if (!is.null(field$fields))
+        {
+            lst <- c(lst, bqRecurseIds(field$fields, field$id))
+        }
+        else
+        {
+            lst <- c(lst, field$id)
+        }
+    }
+    lst
+}
+
+bqRecurseIds <- function (fields, prefix)
+{
+    lst <- c()
+    for (field in fields)
+    {
+        if (!is.null(field$fields))
+        {
+            lst <- c(lst, bqRecurseIds(field$fields, 
+                                         paste(prefix, field$id, sep=".")))
+        }
+        else
+        {
+            lst <- c(lst, paste(prefix, field$id, sep="."))
+        }
+    }
+    lst
+}
 
 if (FALSE) { ########################### END OF CODE
+
+#bqCloseDriver <- function(drv, ...)
+#{
+#    if (!isIdCurrent(drv))
+#        return 1
+#    # close specified driver
+#    return 0
+#}
 
 "mysqlDBApply" <-
 function(res, INDEX, FUN = stop("must specify FUN"), 
@@ -776,10 +850,4 @@ function(con, strings)
   out
 }
 
-## For testing compiled against loaded mysql client library versions
-"mysqlClientLibraryVersions" <-
-function()
-{
-    .Call("RS_MySQL_clientLibraryVersions",PACKAGE=.MySQLPkgName)
-}
-}
+} ### END OF COMMENT SECTION

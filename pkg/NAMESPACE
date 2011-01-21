@@ -1,4 +1,4 @@
-## NAMESPACE         David Xiao         2011-1-13
+## NAMESPACE         David Xiao         2011-1-21
 
 import(methods)
 import(DBI)
@@ -33,6 +33,7 @@ exportMethods(
     dbGetQuery,
     dbGetException,
     dbListResults,
+    #dbDescribeTable - should impliment some time
 
     # Connection - convenience
     dbListTables,
@@ -63,5 +64,6 @@ export(
     # delete these after finished - these should be private
     generateBQId,
     bqConvertFactorToType,
-    bq.map.type
+    bq.map.type,
+    bqDescribeTable
 )

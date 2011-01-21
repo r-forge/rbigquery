@@ -1,3 +1,19 @@
+README      David Xiao      2010-1-21
+
+    Fixed bug which returned bad query results.
+
+    Implimented dbListFields, created new function bqDescribeTables which gives
+        table metadata, will be replaced with BQConnect S4 method soon.
+
+    driver registry issues will be shelved indefinitely - I might implement
+        registry of results by the connections though
+
+    At least while this package is version<=1.0, it will have read capability
+        only - unless someone wants to help me...
+
+Bumping version number to 0.4
+
+
 README      David Xiao      2011-1-13
 
     BQResult has now been fully implemented, with the exception of

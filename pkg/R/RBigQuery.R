@@ -1,4 +1,4 @@
-## RBigQuery.R      David Xiao      2011-1-13
+## RBigQuery.R      David Xiao      2011-1-21
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL Advanced
@@ -13,11 +13,11 @@
 ## CONSTANTS
 
 .BQPkgName <- "RBigQuery"
-.BQVersion <- "0.3"
+.BQVersion <- "0.4"
 .BQLoginURL <- "https://www.google.com/accounts/ClientLogin"
 .BQService <- "ndev"
 .BQSource <- "RBigQuery"
-#.BQEndpoint <- "https://www.googleapis.com/bigquery/v1/query"
+.BQGetpoint <- "https://www.googleapis.com/bigquery/v1/"
 .BQEndpoint <- "https://www.googleapis.com/rpc"
 
 bq.map.type <- list(
@@ -123,6 +123,12 @@ setMethod("dbGetQuery",
             def = function(conn, statement, ...) bqQuickStatement(conn, statement, ...),
             )
 
+setMethod("dbListFields",
+            signature(conn="BQConnection", name="character"),
+            def = function(conn, name, ...) bqListFields(conn, name, ...),
+            valueClass = "character"
+        )
+
 #######################################
 ## DBIResult Class
 
@@ -225,18 +231,6 @@ setMethod("dbRemoveTable",
             },
             valueClass = "logical"
 )
-
-setMethod("dbListFields",
-            signature(conn="BQConnection", name="character"),
-            def = function(conn, name, ...)
-            {
-                fields <- dbGetQuery(conn, paste("describe", name))[,1]
-                if (length(fields) == 0)
-                    fields <- character()
-                fields
-            },
-            valueClass = "character"
-        )
 
 #######################################
 ## DBIResult Class
