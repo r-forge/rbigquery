@@ -1,3 +1,16 @@
+README      David Xiao      2010-1-24
+
+    All BQResult, Connection, and Result methods have been implimented minus
+        most who were designated optional by the DBI vignette on CRAN.
+
+    Pass-by-value problems have now been fixed - dbCloseResult, dbDisconnect,
+        dbListConnections, etc. now function as they should.
+
+    Next version will be documentation, and will probably be release before or
+        right before 1.0.
+
+First version now mostly complete and usable, bumping to version 0.5
+
 README      David Xiao      2010-1-21
 
     Fixed bug which returned bad query results.

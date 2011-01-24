@@ -1,8 +1,7 @@
-## NAMESPACE         David Xiao         2011-1-21
+## NAMESPACE         David Xiao         2011-1-24
 
 import(methods)
 import(DBI)
-import(RCurl)
 
 ## Classes
 
@@ -18,38 +17,33 @@ exportClasses(
 exportMethods(
 
     # General to all Objects
-    dbGetInfo,
-    summary,
+    dbGetInfo,          ##DONE
+    summary,            ##DONE
 
     # Driver
-    dbListConnections,
-    #dbUnloadDriver, #optional
-    #drivername #invoked by dbDriver, instantiates corresponding driver object
+    dbListConnections,  ##DONE
 
     # Connection
-    dbConnect,
-    dbDisconnect,
-    dbSendQuery,
-    dbGetQuery,
-    dbGetException,
-    dbListResults,
-    #dbDescribeTable - should impliment some time
+    dbConnect,          ##DONE
+    dbDisconnect,       ##DONE
+    dbSendQuery,        ##DONE
+    dbGetQuery,         ##DONE
+    dbGetException,     ##DONE
+    dbListResults,      ##DONE
 
     # Connection - convenience
-    dbListTables,
-    dbReadTable,
-    dbWriteTable,
-    dbExistsTable,
-    dbRemoveTable,
-    dbListFields,
+    dbListTables,       ##CANT
+    dbReadTable,        ##DONE
+    dbWriteTable,       ##WONT
+    dbExistsTable,      ##WONT
+    dbRemoveTable,      ##WONT
+    dbListFields,       ##DONE
 
     # Result
-    fetch,
-    dbClearResult,
-    dbColumnInfo,
-    #dbSetDataMappings, #optional
-    dbGetStatement,
-    dbGetRowCount,
+    fetch,              ##DONE
+    dbClearResult,      ##DONE
+    dbColumnInfo,       ##DONE
+    dbGetStatement,     ##DONE
 
     # Other (Implemented by DBI, should probably be overwritten)
     dbDataType,
@@ -60,10 +54,5 @@ exportMethods(
 
 export(
     BigQuery,
-
-    # delete these after finished - these should be private
-    generateBQId,
-    bqConvertFactorToType,
-    bq.map.type,
     bqDescribeTable
 )

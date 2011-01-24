@@ -1,13 +1,10 @@
-## BBigQuerySupport.R       David Xiao      2011-1-21
+## BigQuerySupport.R       David Xiao      2011-1-24
 
 ## 
 ## This project is being developed as part of a UROP under the MIT CSAIL
 ## Advanced Network Architectures Group.
 ## Thanks to the authors of the RMySQL and RPostgreSQL packages, upon which 
 ## much of the code here is based. 
-##
-## Note that as of right now all BQObjects are still pass by value - any
-## operation that changes the state of a BQ object WILL NOT work.
 ##
 
 ## Why on earth does R not have this built in?
@@ -26,17 +23,19 @@ getBQDriverConstructor <- function ()
 {
     constructed <- FALSE
     driver <- 0
-    function (max.con=5, fetch.default.rec = 1000, force.reload = FALSE)
+    function (max.con=1, fetch.default.rec = 10000, force.reload = FALSE)
     {
         if (constructed == FALSE || force.reload == TRUE)
         {
+            env <- new.env(parent=emptyenv())
+            env$connections = list()
+            env$prc.con = as.integer(0)
             driver <<- new("BQDriver", 
                             Id = as.integer(0),
                             connections = list(),
                             fetch.default.rec = as.integer(fetch.default.rec),
                             max.con = as.integer(max.con),
-                            num.con = as.integer(0),
-                            prc.con = as.integer(0)
+                            state = env
                           )
             constructed <<- TRUE
         }
@@ -56,7 +55,7 @@ bqDescribeDriver <- function(obj, verbose = FALSE, ...)
    cat("  Default records per fetch:", info$fetch.default.rec, "\n")
    cat("  Max  connections:", info$max.con, "\n")
    cat("  Conn. processed :", info$prc.con, "\n")
-   cat("  Open connections:", info$num.con, "\n")
+   cat("  Open connections:", length(info$connections), "\n")
    if(verbose && !is.null(info$connections)){
       for(i in seq(along = info$connections)){
          cat("   ", i, " ")
@@ -79,9 +78,8 @@ bqDriverInfo <- function(dbObj, what="", ...)
     info$managerId <- dbObj@Id
     info$fetch.default.rec <- dbObj@fetch.default.rec
     info$max.con <- dbObj@max.con
-    info$prc.con <- dbObj@prc.con
-    info$num.con <- dbObj@num.con
-    info$connections <- dbObj@connections
+    info$prc.con <- dbObj@state$prc.con
+    info$connections <- dbObj@state$connections
     info$clientVersion <- .BQVersion
     if(!missing(what))
         info[what]
@@ -99,7 +97,7 @@ bqNewConnection <- function(drv, username=NULL, password=NULL)
     if (!is.null(password) && !is.character(password))
         stop("Argument password must be a string or NULL")
 
-    if (drv@num.con >= drv@max.con)
+    if (length(drv@state$connections) >= drv@max.con)
         stop("Driver has too many open connections")
    
     result = postForm(.BQLoginURL,
@@ -120,11 +118,10 @@ bqNewConnection <- function(drv, username=NULL, password=NULL)
         auth.token <- substring(result.lines[grep("Auth=", result.lines)],
                                 nchar("Auth=")+1)
         connection <- new("BQConnection", username=username, password=password,
-                            driver=drv, auth.token=auth.token, Id=generateBQId())
+                            driver=drv, auth.token=auth.token, 
+                            Id=generateBQId(),state=new.env(parent=globalenv()))
 
-        drv@num.con <- as.integer(drv@num.con + 1)
-        drv@connections[connection@Id] <- connection
-
+        drv@state$connections[connection@Id] <- connection
         connection
     }
     else
@@ -140,19 +137,14 @@ bqDescribeConnection <- function(obj, verbose = FALSE, ...)
    cat("  Driver: ")
    print(info$driver)
    cat("  Username:", info$username, "\n")
+   cat("  Last Result: ")
+   print(info$last.result)
    if(verbose){
       cat("  Password:", info$password, "\n")
       cat("  Auth Token:", info$auth.token, "\n")
       cat("  BigQuery client version: ", 
          dbGetInfo(info$driver, what="clientVersion")[[1]], "\n")
    }
-   #if(length(info$rsId)>0){
-   #   for(i in seq(along = info$rsId)){
-   #      cat("   ", i, " ")
-   #      print(info$rsId[[i]])
-   #   }
-   #} else 
-   #   cat("  No resultSet available\n")
    invisible(NULL)
 }
 
@@ -165,6 +157,7 @@ bqConnectionInfo <- function(obj, what="", ...)
    info$username <- obj@username
    info$password <- length(obj@password)
    info$auth.token <- obj@auth.token
+   info$last.result <- obj@state$last.result
    #rsId <- vector("list", length = length(info$rsId))
    #for(i in seq(along = info$rsId))
    #    rsId[[i]] <- new("MySQLResult", Id = c(id, info$rsId[i]))
@@ -179,18 +172,10 @@ bqCloseConnection <- function(con, ...)
 {
    if(!isIdCurrent(con))
       return(TRUE)
-   #rs <- dbListResults(con)
-   #if(length(rs)>0){
-   #   if(dbHasCompleted(rs[[1]]))
-   #      dbClearResult(rs[[1]])
-   #   else
-   #      stop("connection has pending rows (close open results set first)")
-   #}
-   #conId <- as(con, "integer")
    driver <- con@driver
-   driver@connections[con@Id] <- NULL
-   driver@num.con <- as.integer(driver@num.con - 1)
-   con@auth.token <- NULL
+   driver@state$connections[con@Id] <- NULL
+   driver@state$prc.con <- as.integer(driver@state$prc.con + 1)
+   con@auth.token <- ""
    return(TRUE)
 }
 
@@ -215,7 +200,7 @@ bqConvertFactorToType <- function(factor, type)
     }
 }
 
-bqExecStatement <- function(con, statement, verbose=FALSE)
+bqExecStatement <- function(con, statement, verbose=FALSE, status=FALSE)
 ## submits the sql statement to BQ and creates a
 ## dbResult object
 {
@@ -227,12 +212,16 @@ bqExecStatement <- function(con, statement, verbose=FALSE)
     json.in <- toJSON(list(params=list(q=statement),method="bigquery.query"))
     if (verbose)
         cat(" JSON Input: ", json.in, "\n")
+    if (status)
+        print("Sending query...")
     options <- list(httpheader=list(Authorization=auth.text,
                         "Content-type"="application/json"),
                         postfields=json.in)
     out.text <- postForm(.BQEndpoint, .opts=options)
     if (verbose)
         print(out.text)
+    if (status)
+        print("Received response, parsing...")
 
     if (typeof(out.text) == "raw")
         json.out <- rawToChar(out.text)
@@ -242,11 +231,16 @@ bqExecStatement <- function(con, statement, verbose=FALSE)
     results <- fromJSON(json.out)
     if (verbose)
         cat(" JSON Output: ", json.out, "\n")
+    if (status)
+        print("Parsed response, arranging...")
 
     if (is.null(results$error))
     {
         success <- TRUE
+        ## THIS COMMAND TAKES TOO LONG TO RUN
         rows <- ldply(results$result$rows, data.frame)
+        if (status)
+            print("Converting data types...")
         fields <- ldply(results$result$fields, data.frame)
         names(rows) <- as.character(fields[["id"]])
         types <- as.character(fields[["type"]])
@@ -266,21 +260,25 @@ bqExecStatement <- function(con, statement, verbose=FALSE)
                                 bq.map.type[types[[index]]])
 
             if (verbose)
-            {
                 print(rows[[index]])
-            }
         }
+        if (status)
+            print("Query Complete")
         result <- rows
     }
     else
     {
+            if (status)
+                print("Query Error")
         success <- FALSE
         fields <- data.frame()
         result <- data.frame(results$error$data)
     }
     
-    new("BQResult", Id=generateBQId(), connection=con,
+    bqresult <- new("BQResult", Id=generateBQId(), connection=con,
             statement=statement, success=success, fields=fields, result=result)
+    con@state$last.result <- bqresult
+    bqresult
 }
 
 ## helper function: it exec's *and* retrieves a statement. It should
@@ -290,7 +288,7 @@ bqQuickStatement <- function(con, statement)
    if(!isIdCurrent(con))
       stop(paste("expired", class(con)))
    result <- dbSendQuery(con, statement)
-   if (is.null(result@error))
+   if (result@success)
    {
        return(result@result)
    }
@@ -298,6 +296,19 @@ bqQuickStatement <- function(con, statement)
    {
        return(FALSE)
    }
+}
+
+bqGetException <- function (conn, ...)
+{
+    last.result <- conn@state$last.result
+    if (last.result$success)
+    {
+        list("no exceptions found")
+    }
+    else
+    {
+        list(last.result$result)
+    }
 }
 
 bqResultInfo <- function(obj, what = "", ...)
@@ -364,7 +375,7 @@ bqFetch <- function(res, n=0, ...)
     res@result
 }
 
-bqDescribeTable <- function (con, table, verbose=FALSE,...)
+bqDescribeTable <- function (con, table, what="", verbose=FALSE,...)
 {
     auth.text <- paste("GoogleLogin auth=", con@auth.token, sep="")
     httpheader <-list("Authorization"=auth.text,
@@ -383,7 +394,14 @@ bqDescribeTable <- function (con, table, verbose=FALSE,...)
         print(data.frame(results))
     }
     
-    results$data
+    if (what)
+    {
+        results$data[what]
+    }
+    else
+    {
+        results$data
+    }
 }
 
 bqListFields <- function (con, table, verbose=FALSE, ...)
@@ -422,15 +440,37 @@ bqRecurseIds <- function (fields, prefix)
     lst
 }
 
+bqReadTable <- function (conn, name, ...)
+{
+    columns <- dbListFields(conn, name)
+    query <- paste("SELECT ", paste(columns, collapse=", "), 
+                    " FROM [", name, "];", sep="")
+    print(query)
+    data <- dbGetQuery(conn, query) 
+
+    data
+}
+
+bqCloseResult <- function(res, ...)
+{
+    if (res@connection@state$last.result@Id == res@Id)
+    {
+        res@connection@state$last.result <- NULL
+    }
+    res@fields <- data.frame()
+    res@result <- data.frame()
+    TRUE
+}
+
 if (FALSE) { ########################### END OF CODE
 
-#bqCloseDriver <- function(drv, ...)
-#{
-#    if (!isIdCurrent(drv))
-#        return 1
-#    # close specified driver
-#    return 0
-#}
+bqCloseDriver <- function(drv, ...)
+{
+    if (!isIdCurrent(drv))
+        return(1)
+    # close specified driver
+    return(0)
+}
 
 "mysqlDBApply" <-
 function(res, INDEX, FUN = stop("must specify FUN"), 
@@ -526,45 +566,6 @@ function(res, INDEX, FUN = stop("must specify FUN"),
       end()
    out
 }
-
-"mysqlCloseResult" <-
-function(res, ...)
-{
-   if(!isIdCurrent(res))
-      return(TRUE)
-   rsId <- as(res, "integer")
-   .Call("RS_MySQL_closeResultSet", rsId, PACKAGE = .MySQLPkgName)
-}
-
-"mysqlReadTable" <- 
-function(con, name, row.names = "row_names", check.names = TRUE, ...)
-## Use NULL, "", or 0 as row.names to prevent using any field as row.names.
-{
-   out <- dbGetQuery(con, paste("SELECT * from", name))
-   if(check.names)
-       names(out) <- make.names(names(out), unique = TRUE)
-   ## should we set the row.names of the output data.frame?
-   nms <- names(out)
-   j <- switch(mode(row.names),
-           "character" = if(row.names=="") 0 else
-               match(tolower(row.names), tolower(nms), 
-                     nomatch = if(missing(row.names)) 0 else -1),
-           "numeric" = row.names,
-           "NULL" = 0,
-           0)
-   if(j==0) 
-      return(out)
-   if(j<0 || j>ncol(out)){
-      warning("row.names not set on output data.frame (non-existing field)")
-      return(out)
-   }
-   rnms <- as.character(out[,j])
-   if(all(!duplicated(rnms))){
-      out <- out[,-j, drop = FALSE]
-      row.names(out) <- rnms
-   } else warning("row.names not set on output (duplicate elements in field)")
-   out
-} 
 
 "mysqlImportFile" <-
 function(con, name, value, field.types = NULL, overwrite = FALSE, 
@@ -850,4 +851,4 @@ function(con, strings)
   out
 }
 
-} ### END OF COMMENT SECTION
+} ### END OF OLD CODE
