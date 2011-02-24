@@ -86,11 +86,6 @@ setMethod("dbConnect", "BQDriver",
     valueClass = "BQConnection"
 )
 
-setMethod("dbConnect", "character",
-    def = function(drv, ...) bqNewConnection(dbDriver(drv), ...),
-    valueClass = "BQConnection"
-)
-
 setMethod("dbConnect", "BQConnection",
     def = function(drv, ...) .NotYetImplemented(),
     valueClass = "BQConnection"

@@ -49,24 +49,24 @@ getBQDriver <- getBQDriverConstructor()
 bqDescribeDriver <- function(obj, verbose = FALSE, ...)
 ## Print out nicely a brief description of the connection Driver
 {
-   info <- dbGetInfo(obj)
-   print(obj)
-   cat("  Driver name: ", info$drvName, "\n")
-   cat("  Default records per fetch:", info$fetch.default.rec, "\n")
-   cat("  Max  connections:", info$max.con, "\n")
-   cat("  Conn. processed :", info$prc.con, "\n")
-   cat("  Open connections:", length(info$connections), "\n")
-   if(verbose && !is.null(info$connections)){
-      for(i in seq(along = info$connections)){
-         cat("   ", i, " ")
-         print(info$connections[[i]])
-      }
-   }
-   if(verbose){
-      cat("  DBI API version: ", dbGetDBIVersion(), "\n")
-      cat("  BQ client version: ", info$clientVersion, "\n")
-   }
-   invisible(NULL)
+    info <- dbGetInfo(obj)
+    print(obj)
+    cat("  Driver name: ", info$drvName, "\n")
+    cat("  Default records per fetch:", info$fetch.default.rec, "\n")
+    cat("  Max  connections:", info$max.con, "\n")
+    cat("  Conn. processed :", info$prc.con, "\n")
+    cat("  Open connections:", length(info$connections), "\n")
+    if(verbose && !is.null(info$connections)){
+        for(i in seq(along = info$connections)){
+            cat("   ", i, " ")
+            print(info$connections[[i]])
+        }
+    }
+    if(verbose){
+        cat("  DBI API version: ", dbGetDBIVersion(), "\n")
+        cat("  BQ client version: ", info$clientVersion, "\n")
+    }
+    invisible(NULL)
 }
 
 bqDriverInfo <- function(dbObj, what="", ...)
@@ -132,51 +132,51 @@ bqNewConnection <- function(drv, username=NULL, password=NULL)
 
 bqDescribeConnection <- function(obj, verbose = FALSE, ...)
 {
-   info <- dbGetInfo(obj)
-   print(obj)
-   cat("  Driver: ")
-   print(info$driver)
-   cat("  Username:", info$username, "\n")
-   cat("  Last Result: ")
-   print(info$last.result)
-   if(verbose){
-      cat("  Password:", info$password, "\n")
-      cat("  Auth Token:", info$auth.token, "\n")
-      cat("  BigQuery client version: ", 
-         dbGetInfo(info$driver, what="clientVersion")[[1]], "\n")
-   }
-   invisible(NULL)
+    info <- dbGetInfo(obj)
+    print(obj)
+    cat("  Driver: ")
+    print(info$driver)
+    cat("  Username:", info$username, "\n")
+    cat("  Last Result: ")
+    print(info$last.result)
+    if(verbose){
+       cat("  Password:", info$password, "\n")
+       cat("  Auth Token:", info$auth.token, "\n")
+       cat("  BigQuery client version: ", 
+           dbGetInfo(info$driver, what="clientVersion")[[1]], "\n")
+    }
+    invisible(NULL)
 }
 
 bqConnectionInfo <- function(obj, what="", ...)
 {
-   if(!isIdCurrent(obj))
-      stop(paste("expired", class(obj), deparse(substitute(obj))))
-   info <- list()
-   info$driver <- obj@driver
-   info$username <- obj@username
-   info$password <- length(obj@password)
-   info$auth.token <- obj@auth.token
-   info$last.result <- obj@state$last.result
-   #rsId <- vector("list", length = length(info$rsId))
-   #for(i in seq(along = info$rsId))
-   #    rsId[[i]] <- new("MySQLResult", Id = c(id, info$rsId[i]))
-   #info$rsId <- rsId
-   if(!missing(what))
-      info[what]
-   else
-      info
+    if(!isIdCurrent(obj))
+       stop(paste("expired", class(obj), deparse(substitute(obj))))
+    info <- list()
+    info$driver <- obj@driver
+    info$username <- obj@username
+    info$password <- length(obj@password)
+    info$auth.token <- obj@auth.token
+    info$last.result <- obj@state$last.result
+    #rsId <- vector("list", length = length(info$rsId))
+    #for(i in seq(along = info$rsId))
+    #    rsId[[i]] <- new("MySQLResult", Id = c(id, info$rsId[i]))
+    #info$rsId <- rsId
+    if(!missing(what))
+        info[what]
+    else
+        info
 }
 
 bqCloseConnection <- function(con, ...)
 {
-   if(!isIdCurrent(con))
-      return(TRUE)
-   driver <- con@driver
-   driver@state$connections[con@Id] <- NULL
-   driver@state$prc.con <- as.integer(driver@state$prc.con + 1)
-   con@auth.token <- ""
-   return(TRUE)
+    if(!isIdCurrent(con))
+       return(TRUE)
+    driver <- con@driver
+    driver@state$connections[con@Id] <- NULL
+    driver@state$prc.con <- as.integer(driver@state$prc.con + 1)
+    con@auth.token <- ""
+    return(TRUE)
 }
 
 bqConvertFactorToType <- function(factor, type)
@@ -285,17 +285,17 @@ bqExecStatement <- function(con, statement, verbose=FALSE, status=FALSE)
 ## be named something else.
 bqQuickStatement <- function(con, statement)
 {
-   if(!isIdCurrent(con))
-      stop(paste("expired", class(con)))
-   result <- dbSendQuery(con, statement)
-   if (result@success)
-   {
-       return(result@result)
-   }
-   else
-   {
-       return(FALSE)
-   }
+    if(!isIdCurrent(con))
+        stop(paste("expired", class(con)))
+    result <- dbSendQuery(con, statement)
+    if (result@success)
+    {
+         return(result@result)
+    }
+    else
+    {
+         return(FALSE)
+    }
 }
 
 bqGetException <- function (conn, ...)
@@ -313,48 +313,48 @@ bqGetException <- function (conn, ...)
 
 bqResultInfo <- function(obj, what = "", ...)
 {
-   if(!isIdCurrent(obj))
-      stop(paste("expired", class(obj), deparse(substitute(obj))))
-   info <- list()
-   info$connection = obj@connection
-   info$statement = obj@statement
-   info$success = obj@success
-   info$fields = obj@fields
-   if (info$success)
-       info$result = obj@result
-   else
-       info$error = as.list(obj@result)
-   if(!missing(what))
-      info[what]
-   else
-      info
+    if(!isIdCurrent(obj))
+       stop(paste("expired", class(obj), deparse(substitute(obj))))
+    info <- list()
+    info$connection = obj@connection
+    info$statement = obj@statement
+    info$success = obj@success
+    info$fields = obj@fields
+    if (info$success)
+        info$result = obj@result
+    else
+        info$error = as.list(obj@result)
+    if(!missing(what))
+        info[what]
+    else
+        info
 }
 
 bqDescribeResult <- function(obj, verbose = FALSE, ...)
 {
 
-   if(!isIdCurrent(obj)){
-      print(obj)
-      invisible(return(NULL))
-   }
-   print(obj)
-   info <- dbGetInfo(obj)
-   cat("  Connection:", format(info$connection), "\n")
-   print(info$connection)
-   cat("  Statement:", info$statement, "\n")
-   cat("  Success:", info$success, "\n")
-   if (! info$success)
-       cat("  Error:", format(as.list(info$error)), "\n")
-   else if (verbose)
-   {
-       cat("  Result:\n")
-       print(data.frame(info$result))
-   }
-   else
-   {
-       cat("  Fields:\n")
-       print(info$fields)
-   }
+    if(!isIdCurrent(obj)){
+       print(obj)
+       invisible(return(NULL))
+    }
+    print(obj)
+    info <- dbGetInfo(obj)
+    cat("  Connection:", format(info$connection), "\n")
+    print(info$connection)
+    cat("  Statement:", info$statement, "\n")
+    cat("  Success:", info$success, "\n")
+    if (! info$success)
+        cat("  Error:", format(as.list(info$error)), "\n")
+    else if (verbose)
+    {
+        cat("  Result:\n")
+        print(data.frame(info$result))
+    }
+    else
+    {
+        cat("  Fields:\n")
+        print(info$fields)
+    }
 #   cat("  Statement:", dbGetStatement(obj), "\n")
 #   cat("  Has completed?", if(dbHasCompleted(obj)) "yes" else "no", "\n")
 #   cat("  Affected rows:", dbGetRowsAffected(obj), "\n")
@@ -364,7 +364,7 @@ bqDescribeResult <- function(obj, verbose = FALSE, ...)
 #      cat("  Fields:\n")  
 #      out <- print(dbColumnInfo(obj))
 #   }
-   invisible(NULL)
+    invisible(NULL)
 }
 
 bqFetch <- function(res, n=0, ...)

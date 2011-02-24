@@ -1,4 +1,14 @@
-README      David Xiao      2010-1-24
+README      David Xiao      2011-2-24
+
+    Documentation is halfway complete.
+
+    Fixed a few bugs discovered during documentation process.
+
+    Biggest bottleneck is currently plyr's operation in dbSendQuery.
+
+Rest of documentation soon.
+
+README      David Xiao      2011-1-24
 
     All BQResult, Connection, and Result methods have been implimented minus
         most who were designated optional by the DBI vignette on CRAN.
@@ -11,7 +21,7 @@ README      David Xiao      2010-1-24
 
 First version now mostly complete and usable, bumping to version 0.5
 
-README      David Xiao      2010-1-21
+README      David Xiao      2011-1-21
 
     Fixed bug which returned bad query results.
 

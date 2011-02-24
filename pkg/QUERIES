@@ -1,0 +1,28 @@
+SELECT STRFTIME_UTC_USEC(day, '%y-%m-%d') AS day, tests
+  FROM (
+    SELECT UTC_USEC_TO_DAY(web100_log_entry.log_time * 1000000) AS day,
+    COUNT(DISTINCT web100_log_entry.connection_spec.remote_ip) AS tests
+    FROM [mlablogs/2010_01]
+    WHERE IS_EXPLICITLY_DEFINED(web100_log_entry.log_time) AND
+          IS_EXPLICITLY_DEFINED(test_id) AND
+          project = 0
+    GROUP BY day
+    ORDER By day ASC
+  );
+
+query.months <- function(year, start, end) {
+    temp <- list()
+    for (x in start:end) {
+        print(paste("running", x))
+        result <- dbSendQuery(conn, paste(firstpart, sprintf("%d_%02d",year,x), secondpart, sep=""))
+        temp[[x]] <- fetch(result)
+    }
+    temp }
+
+postscript("ndt_counts_graph.ps", width=10, height=7.5)
+plot(testcount, type="h", col="red")
+points(addresscount, col="blue", pch=".", cex=2)
+title(main="NDT tests and unique IPs per day")
+legend("topleft", c("tests run", "IP addresses"), col=c("black", "blue"), pch=c(20,20))
+dev.off()
+

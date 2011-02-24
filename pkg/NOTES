@@ -1,0 +1,8 @@
+TODO:
+    Rd documentation
+    make ldply faster
+    dbResult implemented to arbitrary size result set
+    implement make.db.names
+    cookie management (new functions?)
+    Set up unit testing/integration test
+    implement isIDcurrent
