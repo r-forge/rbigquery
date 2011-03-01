@@ -87,46 +87,61 @@ bqDriverInfo <- function(dbObj, what="", ...)
         info
 }
 
-bqNewConnection <- function(drv, username=NULL, password=NULL)
+bqNewConnection <- function(drv, username=NULL, password=NULL, auth.token=NULL)
 {
     if(!isIdCurrent(drv))
         stop("expired manager")
 
     if (!is.null(username) && !is.character(username))
         stop("Argument username must be a string")
-    if (!is.null(password) && !is.character(password))
-        stop("Argument password must be a string or NULL")
 
     if (length(drv@state$connections) >= drv@max.con)
         stop("Driver has too many open connections")
-   
-    result = postForm(.BQLoginURL,
-        "accountType" = "HOSTED_OR_GOOGLE",
-        "Email" = username,
-        "Passwd" = password,
-        service = .BQService,
-        source = .BQSource)
 
-    result.lines = strsplit(result, '\n')[[1]]
-
-    if (grepl("Error=", result))
+    if (!is.null(auth.token) || !is.character(auth.token))
     {
-        stop(paste("Login", result.lines[grep("Error=", result.lines)]))
-    }
-    else if (grepl("Auth=", result))
-    {
-        auth.token <- substring(result.lines[grep("Auth=", result.lines)],
-                                nchar("Auth=")+1)
-        connection <- new("BQConnection", username=username, password=password,
-                            driver=drv, auth.token=auth.token, 
-                            Id=generateBQId(),state=new.env(parent=globalenv()))
+        connection <- new("BQConnection", username=username,
+                                password="", driver=drv,
+                                auth.token=auth.token, Id=generateBQId(),
+                                state=new.env(parent=globalenv()))
 
         drv@state$connections[connection@Id] <- connection
         connection
     }
     else
     {
-        stop("Unknown Error: Could not login")
+        if (!is.null(password) && !is.character(password))
+            stop("Argument password must be a string or NULL")
+
+        result = postForm(.BQLoginURL,
+            "accountType" = "HOSTED_OR_GOOGLE",
+            "Email" = username,
+            "Passwd" = password,
+            service = .BQService,
+            source = .BQSource)
+
+        result.lines = strsplit(result, '\n')[[1]]
+
+        if (grepl("Error=", result))
+        {
+            stop(paste("Login", result.lines[grep("Error=", result.lines)]))
+        }
+        else if (grepl("Auth=", result))
+        {
+            auth.token <- substring(result.lines[grep("Auth=", result.lines)],
+                                    nchar("Auth=")+1)
+            connection <- new("BQConnection", username=username, 
+                                password=password, driver=drv, 
+                                auth.token=auth.token, Id=generateBQId(),
+                                state=new.env(parent=globalenv()))
+
+            drv@state$connections[connection@Id] <- connection
+            connection
+        }
+        else
+        {
+            stop("Unknown Error: Could not login")
+        }
     }
 }
 

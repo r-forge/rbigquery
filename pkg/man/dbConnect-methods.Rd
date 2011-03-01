@@ -15,10 +15,16 @@
     BQConnection object which can then be used to query the BigQuery servers.
 }
 
+\item{\code{signature(drv = "BQDriver", username="character", auth.token="character")}}{
+    Takes the authentication token provided as an argument and creates a
+    BQConnection object with can then be used to query to BigQuery servers.
+    N.B.: RBigQuery does not actually verify to see if the token is correct -
+    you'll have to query BigQuery yourself to find out.
+}
+
 \item{\code{signature(drv = "BQConnection")}}{
     Should clone the provided BQConnection object, not implemented for now.
 }
-
 }}
 
 \arguments{

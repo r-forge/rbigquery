@@ -1,5 +1,5 @@
 Package:     RBigQuery
-Version:     0.5
+Version:     0.5.1
 Date:        2011-1-21
 Title:       BigQuery for R
 Author:      David Xiao <dxiao@mit.edu>

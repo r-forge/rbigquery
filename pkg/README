@@ -1,12 +1,9 @@
-README      David Xiao      2011-2-24
+README      David Xiao      2011-3-01
 
-    Documentation is halfway complete.
+    Minor update adding ability to create connection with a provided 
+        auth.token
 
-    Fixed a few bugs discovered during documentation process.
-
-    Biggest bottleneck is currently plyr's operation in dbSendQuery.
-
-Rest of documentation soon.
+Bumped version to 0.5.1
 
 README      David Xiao      2011-1-24
 
