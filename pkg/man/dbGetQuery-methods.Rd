@@ -10,12 +10,13 @@
 \section{Methods}{
 \describe{
 
-\item{\code{signature(conn = "BQConnection", statement = "character")}}{
+\item{\code{signature(conn = "BQConnection", statement = "character"), ...}}{
 }
 }}
 \arguments{
     \item{conn}{BQConnection object to send query through}
     \item{statement}{character string of statement to execute}
+    \item{...}{other arguments are passed to dbSendQuery call}
 }
 
 \examples{ \dontrun{

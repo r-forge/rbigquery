@@ -298,11 +298,11 @@ bqExecStatement <- function(con, statement, verbose=FALSE, status=FALSE)
 
 ## helper function: it exec's *and* retrieves a statement. It should
 ## be named something else.
-bqQuickStatement <- function(con, statement)
+bqQuickStatement <- function(con, statement, ...)
 {
     if(!isIdCurrent(con))
         stop(paste("expired", class(con)))
-    result <- dbSendQuery(con, statement)
+    result <- dbSendQuery(con, statement, ...)
     if (result@success)
     {
          return(result@result)
@@ -455,11 +455,11 @@ bqRecurseIds <- function (fields, prefix)
     lst
 }
 
-bqReadTable <- function (conn, name, ...)
+bqReadTable <- function (conn, name, addend="", ...)
 {
     columns <- dbListFields(conn, name)
     query <- paste("SELECT ", paste(columns, collapse=", "), 
-                    " FROM [", name, "];", sep="")
+                    " FROM [", name, "] ", addend, ";", sep="")
     print(query)
     data <- dbGetQuery(conn, query) 
 

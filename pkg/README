@@ -1,3 +1,13 @@
+README      David Xiao      2011-3-03
+
+    Finished initial documentation of package.
+
+    dbGetQuery recognizes dbSendQuery options, like status
+
+    dbReadTable allows for addtional clauses to be specified in its query
+
+Bumped version to 0.5.2
+
 README      David Xiao      2011-3-01
 
     Minor update adding ability to create connection with a provided 

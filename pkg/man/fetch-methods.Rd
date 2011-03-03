@@ -3,20 +3,30 @@
 \alias{fetch-methods}
 \alias{fetch,BQResult,missing-method}
 \alias{fetch,BQResult,numeric-method}
-\title{ ~~ Methods for Function fetch in Package `DBI' ~~}
+\title{ Fetch data out of an BQResult object }
 \description{
- ~~ Methods for function \code{fetch} in Package `DBI' ~~
+    Retrive data from a BQResult in the form of a data.frame
 }
 \section{Methods}{
 \describe{
 
 \item{\code{signature(res = "BQResult", n = "missing")}}{
-%%  ~~describe this method here~~
+    Retrieves as many rows of the data as possible.
 }
 
 \item{\code{signature(res = "BQResult", n = "numeric")}}{
-%%  ~~describe this method here~~
+    Retrieves the first n rows of data. 
 }
 }}
+
+\examples{ \dontrun{
+    result <- dbSendQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare] WHERE word CONTAINS 'raisin'")
+    data <- fetch(result)
+}}
+
+\seealso{
+    \code{\link{BQResult-class}}
+    \code{\link{dbSendQuery-methods}}
+}
+
 \keyword{methods}
-\keyword{ ~~ other possible keyword(s) ~~ }
