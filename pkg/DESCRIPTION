@@ -1,9 +1,9 @@
 Package:     RBigQuery
 Version:     0.5.2
-Date:        2011-1-21
+Date:        2011-3-03
 Title:       BigQuery for R
-Author:      David Xiao <dxiao@mit.edu>
-Maintainer:  David Xiao <dxiao@mit.edu>
+Author:      David Xiao <dxiao@csail.mit.edu>
+Maintainer:  David Xiao <dxiao@csail.mit.edu>
 Depends:     R (>= 2.11.0), methods, DBI (> 0.2-2), rjson, RCurl, plyr
 Description: R interface for Google BigQuery 
 Collate:     dbObjectId.R RBigQuerySupport.R RBigQuery.R

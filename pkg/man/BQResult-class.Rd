@@ -23,20 +23,22 @@ Class \code{"\linkS4class{dbObjectId}"}, by class "BQObject", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{dbClearResult}{\code{signature(res = "BQResult")}: ... }
-    \item{dbColumnInfo}{\code{signature(res = "BQResult")}: ... }
-    \item{dbGetInfo}{\code{signature(dbObj = "BQResult", what="character")}: ... }
-    \item{dbGetStatement}{\code{signature(res = "BQResult")}: ... }
-    \item{fetch}{\code{signature(res = "BQResult")}: ... }
-    \item{summary}{\code{signature(object = "BQResult", what="character")}: ... }
+    \item{dbClearResult}{\code{signature(res = "BQResult"): ... }}
+    \item{dbColumnInfo}{\code{signature(res = "BQResult"): ... }}
+    \item{dbGetInfo}{\code{signature(dbObj = "BQResult", what="character"): ... }}
+    \item{dbGetStatement}{\code{signature(res = "BQResult"): ... }}
+    \item{fetch}{\code{signature(res = "BQResult"): ... }}
+    \item{summary}{\code{signature(object = "BQResult", what="character"): ... }}
 	 }
 }
 \examples{ \dontrun{
-    result <- dbSendQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare] WHERE word CONTAINS 'raisin'")
+    result <- dbSendQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare]
+                                 WHERE word CONTAINS 'raisin'")
     summary(result)
     data <- fetch(result)
     
     ## or to get data directly, use
-    data <- dbGetQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare] WHERE word CONTAINS 'raisin'")
+    data <- dbGetQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare]
+                              WHERE word CONTAINS 'raisin'")
 }}
 \keyword{classes}

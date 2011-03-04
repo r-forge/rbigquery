@@ -36,16 +36,16 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
 $contents = '';
 while (!feof($handle)) {
-	$contents .= fread($handle, 8192);
+	$contents .= nl2br(fread($handle, 8192));
 }
 fclose($handle);
 echo $contents; } ?>
 
 <!-- end of project description -->
 
-<p> No content added. </p>
+<p> A PDF version of the manual is located <a href="RBigQuery-manual.pdf">here</a>.
 
-<p> The <strong>project summary page</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
+<p> You can find the project summary page <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/">here</a>. </p>
 
 </body>
 </html>

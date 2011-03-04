@@ -20,30 +20,31 @@ Class \code{"\linkS4class{dbObjectId}"}, by class "BQObject", distance 2.
   \describe{
     \item{dbConnect}{\code{
         signature(drv = "BQConnection", username="character",
-            password="character")}: ... }
+            password="character"): ... }}
     \item{dbDisconnect}{\code{
-        signature(conn = "BQConnection")}: ... }
+        signature(conn = "BQConnection"): ... }}
     \item{dbGetException}{\code{
-        signature(conn = "BQConnection")}: ... }
+        signature(conn = "BQConnection"): ... }}
     \item{dbGetInfo}{\code{
-        signature(dbObj = "BQConnection")}: ... }
+        signature(dbObj = "BQConnection"): ... }}
     \item{dbSendQuery}{\code{
         signature(conn = "BQConnection", statement = "character",
-            verbose="logical", status="logical")}: ... }
+            verbose="logical", status="logical"): ... }}
     \item{dbGetQuery}{\code{
-        signature(conn = "BQConnection", statement = "character")}: ... }
+        signature(conn = "BQConnection", statement = "character"): ... }}
     \item{dbListFields}{\code{
-        signature(conn = "BQConnection", name = "character")}: ... }
+        signature(conn = "BQConnection", name = "character"): ... }}
     \item{dbListResults}{\code{
-        signature(conn = "BQConnection")}: ... }
+        signature(conn = "BQConnection"): ... }}
     \item{dbReadTable}{\code{
-        signature(conn = "BQConnection", name = "character")}: ... }
+        signature(conn = "BQConnection", name = "character"): ... }}
     \item{summary}{\code{
-        signature(object = "BQConnection")}: ... }
+        signature(object = "BQConnection"): ... }}
 	 }
 }
 \examples{ \dontrun{
     conn <- dbConnect(drv, username="username", password="password")
-    result <- dbGetQueyr(conn, "SELECT word FROM [bigquery/samples/shakespeare] WHERE word CONTAINS 'raisin'")
+    result <- dbGetQueyr(conn, "SELECT word FROM [bigquery/samples/shakespeare]
+                                WHERE word CONTAINS 'raisin'")
 }}
 \keyword{classes}

@@ -25,15 +25,15 @@ Class \code{"\linkS4class{dbObjectId}"}, by class "BQObject", distance 2.
   \describe{
     \item{dbConnect}{\code{
         signature(drv = "BQDriver", username = "character", 
-            password="character")}: ... }
+            password="character"): ... }}
     \item{dbGetInfo}{\code{
         signature(dbObj = "BQDriver", what="character")}: ... }
     \item{dbListConnections}{\code{
-        signature(drv = "BQDriver")}: ... }
+        signature(drv = "BQDriver"): ... }}
     \item{dbListFields}{\code{
-        signature(drv = "BQDriver", table="character")}: ... }
+        signature(drv = "BQDriver", table="character"): ... }}
     \item{summary}{\code{
-        signature(object = "BQDriver", verbose="logical")}: ... }
+        signature(object = "BQDriver", verbose="logical"): ... }}
 	 }
 }
 \seealso{

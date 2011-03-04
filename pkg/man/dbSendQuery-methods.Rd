@@ -23,7 +23,8 @@
 
 \examples{ \dontrun{
     conn <- dbConnect(driver, "username", "password")
-    result <- dbSendQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare] WHERE word CONTAINS 'raisin'", status=TRUE)
+    result <- dbSendQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare]
+                                 WHERE word CONTAINS 'raisin'", status=TRUE)
     data <- fetch(result)
 }}
 

@@ -20,7 +20,8 @@
 }
 
 \examples{ \dontrun{
-    data <- dbGetQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare] WHERE word CONTAINS 'raisin'")
+    data <- dbGetQuery(conn, "SELECT word FROM [bigquery/samples/shakespeare]
+                              WHERE word CONTAINS 'raisin'")
 }}
 
 \seealso{
