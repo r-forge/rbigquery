@@ -3,6 +3,7 @@ README      David Xiao      2011-3-03
     Finished initial documentation of package.
 
     dbGetQuery recognizes dbSendQuery options, like status
+    fixed data conversion bugs for dbSendQuery
 
     dbReadTable allows for addtional clauses to be specified in its query
 

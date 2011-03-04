@@ -201,14 +201,15 @@ bqConvertFactorToType <- function(factor, type)
     {
         as.integer(levels(factor)[factor])
     }
-    else if (type == "numeric")
-    {
-        as.numeric(levels(factor)[factor])
-    }
-    else if (type == "logical")
-    {
-        as.logical(levels(factor)[factor])
-    }
+    # evidently you don't need to do anything here!
+    #else if (type == "numeric")
+    #{
+    #    factor
+    #}
+    #else if (type == "logical")
+    #{
+    #    as.logical(levels(factor)[factor])
+    #}
     else
     {
         factor
@@ -272,8 +273,7 @@ bqExecStatement <- function(con, statement, verbose=FALSE, status=FALSE)
             }
 
             rows[[index]] <- bqConvertFactorToType(rows[[index]],
-                                bq.map.type[types[[index]]])
-
+                                bq.map.type[[types[[index]]]])
             if (verbose)
                 print(rows[[index]])
         }
