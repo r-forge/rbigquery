@@ -23,7 +23,7 @@ getBQDriverConstructor <- function ()
 {
     constructed <- FALSE
     driver <- 0
-    function (max.con=1, fetch.default.rec = 10000, force.reload = FALSE)
+    function (max.con=3, fetch.default.rec = 10000, force.reload = FALSE)
     {
         if (constructed == FALSE || force.reload == TRUE)
         {
@@ -98,8 +98,12 @@ bqNewConnection <- function(drv, username=NULL, password=NULL, auth.token=NULL)
     if (length(drv@state$connections) >= drv@max.con)
         stop("Driver has too many open connections")
 
-    if (!is.null(auth.token) || !is.character(auth.token))
+    if (!is.null(auth.token))
     {
+        if (!is.character(auth.token))
+        {
+            stop("Argument auth.token must be of type character")
+        }
         connection <- new("BQConnection", username=username,
                                 password="", driver=drv,
                                 auth.token=auth.token, Id=generateBQId(),
@@ -170,7 +174,7 @@ bqConnectionInfo <- function(obj, what="", ...)
     info <- list()
     info$driver <- obj@driver
     info$username <- obj@username
-    info$password <- length(obj@password)
+    info$password <- nchar(obj@password)
     info$auth.token <- obj@auth.token
     info$last.result <- obj@state$last.result
     #rsId <- vector("list", length = length(info$rsId))
@@ -248,7 +252,7 @@ bqExecStatement <- function(con, statement, verbose=FALSE, status=FALSE)
     if (verbose)
         cat(" JSON Output: ", json.out, "\n")
     if (status)
-        print("Parsed response, arranging...")
+        cat("Parsed response, arranging...", nchar(json.out), "chars\n")
 
     if (is.null(results$error))
     {
@@ -461,7 +465,7 @@ bqReadTable <- function (conn, name, addend="", ...)
     query <- paste("SELECT ", paste(columns, collapse=", "), 
                     " FROM [", name, "] ", addend, ";", sep="")
     print(query)
-    data <- dbGetQuery(conn, query) 
+    data <- dbGetQuery(conn, query, ...) 
 
     data
 }

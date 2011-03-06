@@ -11,7 +11,7 @@
 ## CONSTANTS
 
 .BQPkgName <- "RBigQuery"
-.BQVersion <- "0.5.2"
+.BQVersion <- "0.5.3"
 .BQLoginURL <- "https://www.google.com/accounts/ClientLogin"
 .BQService <- "ndev"
 .BQSource <- "RBigQuery"

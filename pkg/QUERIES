@@ -10,14 +10,33 @@ SELECT STRFTIME_UTC_USEC(day, '%y-%m-%d') AS day, tests
     ORDER By day ASC
   );
 
-query.months <- function(year, start, end) {
+x <- dbListFields(conn, "mlablogs/2010_01")
+result4 <- dbSendQuery(conn, paste("SELECT", paste(x, collapse=", "), "FROM [mlablogs/2010_01] WHERE test_id = '2010/01/01/20100101T00:00:04.393464000Z_92.37.211.39:3545.c2s_snaplog' AND web100_log_entry.is_last_entry = TRUE;"), status=TRUE)
+
+query.months <- function(startyear, startmonth, endyear, endmonth, combine=TRUE) {
     temp <- list()
-    for (x in start:end) {
-        print(paste("running", x))
-        result <- dbSendQuery(conn, paste(firstpart, sprintf("%d_%02d",year,x), secondpart, sep=""))
-        temp[[x]] <- fetch(result)
+    year <- startyear
+    month <- startmonth
+    while (year*100+month < endyear*100+endmonth) {
+        print(paste("running", year, month))
+        result <- dbSendQuery(conn, paste(firstpart, sprintf("%d_%02d",year,month), secondpart, sep=""))
+        temp[[year*100+month]] <- fetch(result)
+        counter <- counter + 1
+        if (month < 11)
+        {
+            month <- month + 1
+        }
+        else
+        {
+            month <- 0
+            year <- year+1
+        }
     }
-    temp }
+    if (combine)
+        ldply(temp, I) 
+    else
+        temp
+}
 
 postscript("ndt_counts_graph.ps", width=10, height=7.5)
 plot(testcount, type="h", col="red")
