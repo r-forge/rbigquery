@@ -26,7 +26,10 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <!-- R-Forge Logo -->
 <table border="0" width="100%" cellspacing="0" cellpadding="0">
 <tr><td>
-<a href="http://r-forge.r-project.org/"><img src="http://<?php echo $themeroot; ?>/images/logo.png" border="0" alt="R-Forge Logo" /> </a> </td> </tr>
+<!--
+<a href="http://r-forge.r-project.org/"><img src="http://<?php echo $themeroot; ?>/images/logo.png" border="0" alt="R-Forge Logo" /> </a> 
+-->
+</td> </tr>
 </table>
 
 
@@ -43,9 +46,11 @@ echo $contents; } ?>
 
 <!-- end of project description -->
 
-<p> A PDF version of the manual is located <a href="RBigQuery-manual.pdf">here</a>.
+<p> A PDF version of the manual with examples is located <a href="RBigQuery-manual.pdf">here</a>.
 
 <p> You can find the project summary page <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/">here</a>. </p>
+
+<p> Another project that has the same objective is: <a href="http://code.google.com/p/google-bigquery-r-client/">google-bigquery-r-client</a>
 
 </body>
 </html>
